@@ -1,0 +1,10 @@
+#csv files
+*.csv
+#xlsx files
+*.xlsx
+#any __pycache__ folder 
+__pycache__/
+#pyc files
+*.pyc
+#ini files
+*.ini
