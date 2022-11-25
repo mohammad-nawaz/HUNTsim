@@ -38,8 +38,8 @@ class MinData:
         if len(my_stock) == 0:
             return pd.DataFrame()
         dfn = self.minuteData(my_stock, name, date)
-        dfn = self.priceStep(dfn)
-        dfn = self.prevFormat(dfn)
+        # dfn = self.priceStep(dfn)
+        # dfn = self.prevFormat(dfn)
         return dfn
     
     def prevFormat(self,df):
@@ -112,6 +112,10 @@ class MinData:
         
         Name = []; Date = []; Time = []; Type =[]; Price = []; Volume = []; Trade = []; cumTrade= []; 
         Value = [];  ValperTrade = []; Color = []
+		##
+        step = []; p_step = []; v_step = []
+		##
+		
         gap = 16
         start = 6; end = len(my_stock)-11
         num_steps = 1+ (end-start)//gap 
@@ -119,11 +123,11 @@ class MinData:
         flag = True
         curPrice = float(my_stock[end].replace('    "Close": ',"").replace(',', ""))
         initPrice = float(my_stock[start].replace('    "Close": ',"").replace(',', ""))
-        
+
         for i in range(num_steps):
             
             ln = len(Price)
-            
+			
             #price, volume, trade, time
             p = float(my_stock[k].replace('    "Close": ',"").replace(',', ""))
             v = int(my_stock[k+3].replace('    "Volume": ',"").replace(',', ""))
@@ -141,15 +145,17 @@ class MinData:
                 bt = int((t//2) + (perc*t//2))
                 st = t -bt
                 bval = round(p*bv/100000,2); sval = round(p*sv/100000,2);
-                #buy
+                #######     buy      ########
                 Name.append(name); Date.append(date); Time.append(tm)
                 Price.append(p); Volume.append(bv); Type.append('Buy'); Color.append('yellow');
-                Trade.append(bt); Value.append(bval); ValperTrade.append(round(bval/max(t,1), 2));
                 #sell
+                Trade.append(bt); Value.append(bval); ValperTrade.append(round(bval/max(bt,1), 2));
+                step.append(0); p_step.append(0); v_step.append(0)
                 Name.append(name); Date.append(date); Time.append(tm)
                 Price.append(p); Volume.append(sv); Type.append('Sell'); Color.append('red');
                 Trade.append(st); Value.append(sval); ValperTrade.append(round(sval/max(t,1), 2));
 
+                step.append(0); p_step.append(0); v_step.append(0)
             else:
                 flag = False
                 Name.append(name); Date.append(date); Time.append(tm); 
@@ -165,6 +171,18 @@ class MinData:
                     Type.append('Sell')
                     Color.append('red')
 
+                ##Price Step
+                price_step = Price[ln]-Price[ln-1]
+                if price_step>0:
+                    step.append(1)
+    
+                elif price_step<0:
+                    step.append(-1)
+                elif price_step==0:
+                    step.append(0)
+    
+                p_step.append(price_step)
+                v_step.append(price_step*Value[i])
 
             k += gap
             #end of loop
@@ -173,10 +191,10 @@ class MinData:
         dfn['Name'] = Name; dfn['Date'] = Date; dfn['Time'] = Time; dfn['Type'] = Type;
         dfn['Price'] = Price; dfn['Volume'] = Volume; dfn['Trade']= Trade;
         dfn['Value'] = Value; dfn['ValperTrade'] = ValperTrade;  dfn['Color'] = Color
+        dfn['Step'] = step ; dfn['Pstep'] = p_step; dfn['Vstep'] = v_step
         
-        df = self.priceStep(dfn)
         
-        return df
+        return dfn
     
     def minDataGroup(self, name, start_date, end_date):
         name = name.upper()
