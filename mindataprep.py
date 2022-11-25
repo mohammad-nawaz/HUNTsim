@@ -115,6 +115,8 @@ class MinData:
 		##
         step = []; p_step = []; v_step = []
 		##
+        Pdel =[]; Pdelsq =[]; Valdel =[]; Valdelsq =[]; Tmdiff = [];
+        Cvpt = []
 		
         gap = 16
         start = 6; end = len(my_stock)-11
@@ -145,16 +147,25 @@ class MinData:
                 bt = int((t//2) + (perc*t//2))
                 st = t -bt
                 bval = round(p*bv/100000,2); sval = round(p*sv/100000,2);
+				
                 #######     buy      ########
                 Name.append(name); Date.append(date); Time.append(tm)
                 Price.append(p); Volume.append(bv); Type.append('Buy'); Color.append('yellow');
-                #sell
                 Trade.append(bt); Value.append(bval); ValperTrade.append(round(bval/max(bt,1), 2));
+                vpt = bval; t = bt; Cvpt.append(round(bval/max(bt,1), 2))
+                ###
+                Pdel.append(0); Pdelsq.append(0);
+                Tmdiff.append(0);
                 step.append(0); p_step.append(0); v_step.append(0)
+                ##########  sell   ########
                 Name.append(name); Date.append(date); Time.append(tm)
                 Price.append(p); Volume.append(sv); Type.append('Sell'); Color.append('red');
-                Trade.append(st); Value.append(sval); ValperTrade.append(round(sval/max(t,1), 2));
-
+                Trade.append(st); Value.append(sval); ValperTrade.append(round(sval/max(st,1), 2));
+				###
+                Pdel.append(0); Pdelsq.append(0);
+                Tmdiff.append(0)
+                ##
+                vpt = -sval; tr = st; Cvpt.append(round(sval/max(st,1), 2)) 
                 step.append(0); p_step.append(0); v_step.append(0)
             else:
                 flag = False
@@ -170,7 +181,18 @@ class MinData:
                 else: 
                     Type.append('Sell')
                     Color.append('red')
-
+				###
+                diffP = p - Price[ln-1]
+                Pdel.append(diffP)
+                Pdelsq.append(diffP**2)
+                x = Time[ln-1]; y = tm
+                if int(y[0:2])>int(x[0:2]):
+                    seconds = 60*int(y[3:5]) + int(y[-2:]) + 60 - int(x[-2:])
+                else:
+                    seconds = int(y[-2:]) + 60 - int(x[-2:])
+				
+                Tmdiff.append(seconds)
+			
                 ##Price Step
                 price_step = Price[ln]-Price[ln-1]
                 if price_step>0:
@@ -183,27 +205,59 @@ class MinData:
     
                 p_step.append(price_step)
                 v_step.append(price_step*Value[i])
+                
+                ##----------CVPT-------#########
+                if Type[ln] == 'Buy':
+                    if Type[ln-1] =='Buy':
+                        vpt += val
+                        tr += t
+                        Cvpt.append(vpt/tr)
+                    else:
+                        vpt = val
+                        tr = t
+                        Cvpt.append(vpt/tr)
+                if Type[ln] == 'Sell':
+                    if Type[ln-1] == 'Sell':
+                        vpt -= val
+                        tr += t
+                        Cvpt.append(vpt/tr)
+                    else:
+                        vpt = -val
+                        tr += t
+                        Cvpt.append(vpt/tr)
 
             k += gap
             #end of loop
         
         dfn = pd.DataFrame()
-        dfn['Name'] = Name; dfn['Date'] = Date; dfn['Time'] = Time; dfn['Type'] = Type;
+        dfn['Name'] = Name; dfn['Date'] = Date; 
+        
+        # Time1 =[datetime.strptime(x, "%H:%M:%S").time() for x in Time]
+        dfn['Time'] = Time;
+        
+        dfn['Type'] = Type;
         dfn['Price'] = Price; dfn['Volume'] = Volume; dfn['Trade']= Trade;
         dfn['Value'] = Value; dfn['ValperTrade'] = ValperTrade;  dfn['Color'] = Color
+		
+        
         dfn['Step'] = step ; dfn['Pstep'] = p_step; dfn['Vstep'] = v_step
         
+        dfn['PriceDiff'] = Pdel; dfn['TimeDiff'] = Tmdiff;
+        
+        dfn['delP/delT'] =[m/max(1,n) for m,n in zip(Pdel,Tmdiff)]
+		
+        dfn['CVPT'] = Cvpt
         
         return dfn
     
-    def minDataGroup(self, name, start_date, end_date):
+    def minDataGroup(self, name, start_date, end_date, store_path):
         name = name.upper()
         td = tcalendar.TradingDates()
         tdates = td.tradingDates(start_date, end_date)
         result = pd.DataFrame()
-        
+        #store_path = 'E:/Excel_Stock/Archive/'
         for dt in tdates:
-            df = self.minDataPrep(name,dt) 
+            df = self.minDataPrep(name,dt,store_path) 
             print (df)
             result = pd.concat([result, df])      
    
