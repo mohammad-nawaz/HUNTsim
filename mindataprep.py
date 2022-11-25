@@ -10,6 +10,7 @@ import numpy as np
 import math
 from numpy import nan
 from datetime import date, time
+from datetime import datetime
 import tcalendar
 import matplotlib
 import matplotlib.pyplot as plt
@@ -19,9 +20,9 @@ from readconfig import ReadConfig
 
 class MinData:
     
-    def minDataPrep(self, name, date):
+    def minDataPrep(self, name, date, store_path):
         name = name.upper()
-        head_name = date+ '_dvp.csv'
+        head_name = store_path + date+ '_dvp.csv'
         file_exists = os.path.exists(head_name)
         if not file_exists:
             return print('file does not exist')
