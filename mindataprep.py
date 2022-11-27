@@ -253,9 +253,9 @@ class MinData:
     def minDataGroup(self, name, start_date, end_date, store_path):
         name = name.upper()
         td = tcalendar.TradingDates()
-        tdates = td.tradingDates(start_date, end_date)
+        tdates = td.tradingDates(name,start_date, end_date)
         result = pd.DataFrame()
-        #store_path = 'E:/Excel_Stock/Archive/'
+        store_path = 'E:/Excel_Stock/Archive/'
         for dt in tdates:
             df = self.minDataPrep(name,dt,store_path) 
             print (df)
@@ -283,13 +283,13 @@ class MinData:
         last_tdate = df["Date"].tolist()[-1]
         
         td = tcalendar.TradingDates()
-        start_date = td.nextTradingDate(last_tdate)
+        start_date = td.nextTradingDate(name,last_tdate)
 
         if enddate==None: 
             end_date = m+d
         else: 
             end_date = enddate
-        tdates = td.tradingDates(start_date, end_date)
+        tdates = td.tradingDates(name,start_date, end_date)
         dfu = pd.DataFrame()        
         dfu = pd.concat([dfu,df])
         
@@ -417,7 +417,7 @@ class DayData:
         if end_date == None: 
             end_date = dates[-1]
         td = tcalendar.TradingDates()
-        tdates = td.tradingDates(start_date, end_date)        
+        tdates = td.tradingDates(name,start_date, end_date)        
         
         
         day_count = []
