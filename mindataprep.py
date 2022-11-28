@@ -20,6 +20,7 @@ from readconfig import ReadConfig
 
 class MinData:
     
+    # def rawDataRead1() and def rawDataRead2() for reading raw data 
     def minDataPrep(self, name, date, store_path):
         name = name.upper()
         head_name = store_path + date+ '_dvp.csv'
@@ -108,6 +109,7 @@ class MinData:
 
         return dfn
     
+    #def minData1 and def minData2 (prepare skeleton from raw data)
     def minuteData(self, my_stock, name, date):
         
         Name = []; Date = []; Time = []; Type =[]; Price = []; Volume = []; Trade = []; cumTrade= []; 
@@ -249,6 +251,8 @@ class MinData:
         dfn['CVPT'] = Cvpt
         
         return dfn
+
+    # minDataPrep()
     
     def minDataGroup(self, name, start_date, end_date, store_path):
         name = name.upper()
