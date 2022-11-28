@@ -41,8 +41,13 @@ class MinData:
     #       prepare skeleton of amarstock data 
     #       return dataframe
 
-    def minDataPrep(self, name, date, store_path):
+    def minDataPrep(self, name, date, store_path=None):
         name = name.upper()
+        with open('paths.txt') as f:
+                paths = [line.rstrip() for line in f]
+        rawdatapath1 = paths[0]
+        rawdatapath2 = paths[1]
+        storemindatapath = paths[2]
         head_name = store_path + date+ '_dvp.csv'
         file_exists = os.path.exists(head_name)
         if not file_exists:
