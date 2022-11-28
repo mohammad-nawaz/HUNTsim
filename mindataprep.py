@@ -20,7 +20,27 @@ from readconfig import ReadConfig
 
 class MinData:
     
-    # def rawDataRead1() and def rawDataRead2() for reading raw data 
+    # def minDataPrep(sname, date) 
+    #       rawDstore1 = snrawdatapath; rawDstore = asrawdatapah
+    #       rawDpath = rawDstore1
+    #       if date is after 1st storage date of new data: 
+    #           rawDpath = rawDstore2; break the loop and exit
+    #       prepare rawdataframe
+    #       mindata1 = minData1()
+    #       mindata2 = minData2()
+    #       self.mindata1 = mindata1
+    #       self.mindata2 = mindata2
+    #       # Add columns
+    #       addCol1(self.mindata1)
+    #       addCol2(self.mindata2)
+    #       
+    # def minData1(rawdataframe)
+    #       prepare skeleton of stocknow data 
+    #       return dataframe
+    # def minData2(rawdataframe)
+    #       prepare skeleton of amarstock data 
+    #       return dataframe
+
     def minDataPrep(self, name, date, store_path):
         name = name.upper()
         head_name = store_path + date+ '_dvp.csv'
@@ -109,7 +129,6 @@ class MinData:
 
         return dfn
     
-    #def minData1 and def minData2 (prepare skeleton from raw data)
     def minuteData(self, my_stock, name, date):
         
         Name = []; Date = []; Time = []; Type =[]; Price = []; Volume = []; Trade = []; cumTrade= []; 
@@ -252,7 +271,6 @@ class MinData:
         
         return dfn
 
-    # minDataPrep()
     
     def minDataGroup(self, name, start_date, end_date, store_path):
         name = name.upper()
