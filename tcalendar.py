@@ -5,7 +5,7 @@ Created on Thu Oct 13 18:03:44 2022
 
 @author: nawaz
 """
-
+import ast
 import re
 
 class TradingDates:
@@ -65,6 +65,15 @@ class TradingDates:
         weekends = fridays + saturdays
         return weekends  
     
+    def recordDates(self, name): 
+        with open('recordDates.txt') as f:
+            data = f.read()
+        rD = ast.literal_eval(data)
+        f.close()
+        if name in rD.keys():
+            recordDate = rD[name]
+        else: recordDate = []
+        return recordDate
 
     def calendarDates(self, start_date, end_date):
         months=['jan','feb','mar','apr','may','jun',
@@ -104,24 +113,26 @@ class TradingDates:
                 
         return tdays
         
-    def tradingDates(self, start_date,end_date):
+    def tradingDates(self,name, start_date,end_date):
         weekends = self.Weekends()
         with open('holidays.txt') as f:
             lines = [line.rstrip() for line in f]
             f.close()
         lines.pop(0)
         holidays = lines
+        record = self.recordDates(name) 
         
         tdates = [i for i in self.calendarDates(start_date,end_date)
                   if i not in weekends]
         
         tdates = [i for i in tdates
                   if i not in holidays]
+        tdates = [i for i in tdates if i not in record]
         
         return tdates
     
     
-    def nextTradingDate(self, date):
+    def nextTradingDate(self,name, date):
         
         date = self.dateStyle(date)
         
@@ -132,10 +143,13 @@ class TradingDates:
         lines.pop(0)
         holidays = lines
         
+        record = self.recordDates(name)
+        
         cdates = [i for i in self.calendarDates('jan01','dec31')]
         tdates = [i for i in self.calendarDates('jan01','dec31')
                   if i not in weekends
-                  if i not in holidays]
+                  if i not in holidays
+                  if i not in record]
         i = 0
         while i<10:
             i += 1
@@ -144,7 +158,7 @@ class TradingDates:
         
         return cdates[cdates.index(date)+i]
     
-    def prevTradingDate(self, date):
+    def prevTradingDate(self,name, date):
         
         date = self.dateStyle(date)
         
@@ -154,11 +168,13 @@ class TradingDates:
             f.close()
         lines.pop(0)
         holidays = lines
+        record = self.recordDates(name)
         
         cdates = [i for i in self.calendarDates('jan01','dec31')]
         tdates = [i for i in self.calendarDates('jan01','dec31')
                   if i not in weekends
-                  if i not in holidays]
+                  if i not in holidays
+                  if i not in record]
         
         i = 0
         while i<10:

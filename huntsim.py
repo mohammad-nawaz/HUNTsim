@@ -187,7 +187,7 @@ class HuntSim:
         df = self.df
         df_td = df[df['Date']==date]
         # td = tcalendar.TradingDates()
-        # prev_date = td.prevTradingDate(date)
+        # prev_date = td.prevTradingDate(name,date)
         # dates = df['Date'].tolist()
         
         # if date==dates[0]:
@@ -259,7 +259,7 @@ class HuntSim:
         
         # Find previous trading dates sell signal
         td = tcalendar.TradingDates()
-        prev_date = td.prevTradingDate(date)
+        prev_date = td.prevTradingDate(name,date)
         dates = df['Date'].tolist()
         
         if date==dates[0]:
