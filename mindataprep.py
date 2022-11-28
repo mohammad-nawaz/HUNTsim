@@ -20,34 +20,71 @@ from readconfig import ReadConfig
 
 class MinData:
     
-    # def minDataPrep(sname, date) 
-    #       rawDstore1 = snrawdatapath; rawDstore = asrawdatapah
-    #       rawDpath = rawDstore1
-    #       if date is after 1st storage date of new data: 
-    #           rawDpath = rawDstore2; break the loop and exit
-    #       prepare rawdataframe
-    #       mindata1 = minData1()
-    #       mindata2 = minData2()
-    #       self.mindata1 = mindata1
-    #       self.mindata2 = mindata2
-    #       # Add columns
-    #       addCol1(self.mindata1)
-    #       addCol2(self.mindata2)
-    #       
-    # def minData1(rawdataframe)
-    #       prepare skeleton of stocknow data 
-    #       return dataframe
-    # def minData2(rawdataframe)
-    #       prepare skeleton of amarstock data 
-    #       return dataframe
-
-    def minDataPrep(self, name, date, store_path=None):
+    def minDataPrep(self, name, date):
         name = name.upper()
+        td = tcalendar.TradingDates()
+        date = td.dateStyle(date)
+        calendarD = td.calendarDates('sep01', 'dec31')
+        idx1 = calendarD.index('oct31')
+        idx2 = calendarD.index(date)
         with open('paths.txt') as f:
-                paths = [line.rstrip() for line in f]
-        rawdatapath1 = paths[0]
-        rawdatapath2 = paths[1]
-        storemindatapath = paths[2]
+            paths = [line.rstrip() for line in f]
+        rawSN_store = paths[0]
+        rawAS_store = paths[1]
+        if idx2< idx1:
+            df = self.minDataPrep1(name, date, rawSN_store)
+            # if len(df) == 0:
+            #     df = self.minDataPrep2(name, date, rawAS_store)
+        else:
+            df = self.minDataPrep2(name, date, rawAS_store)
+        return df
+            
+    def storeData(self, name, start_date, end_date):
+        name = name.upper()
+        td = tcalendar.TradingDates()
+        start_date = td.dateStyle(start_date)
+        end_date = td.dateStyle(end_date)
+        
+        calendarD = td.calendarDates('sep01', 'dec31')
+        idx = calendarD.index('oct31')
+        startidx = calendarD.index(start_date)
+        endidx = calendarD.index(end_date)
+        with open('paths.txt') as f:
+            paths = [line.rstrip() for line in f]
+        storage1 = paths[0]; storage2 = paths[1]
+        finstore = paths[2];
+        if startidx <= idx < endidx:
+            
+            df1 = self.minDataGroup(name, start_date, 'oct30', storage1)
+            df1.reset_index(drop=True)
+            df1.to_csv(finstore+name+'old.csv', index = False)
+            
+            df2 = self.minDataGroup(name, 'oct31', end_date, storage2)
+            df2.reset_index(drop=True)
+            df2.to_csv(finstore+name+'new.csv', index = False)
+            # elif endidx< idx:
+            #     df = self.minDataGroup(name, start_date, end_date, storage1)
+            #     df.to_csv(finstore+name+'1.csv')
+        elif startidx <= idx and endidx<idx:
+            df = self.minDataGroup(name, start_date, end_date, storage1)
+            df.reset_index(drop=True)
+            df.to_csv(finstore+name+'old.csv',index=False)
+            
+        elif startidx>=idx and endidx >= idx:
+           df = self.minDataGroup(name,start_date, end_date, storage2);
+           df.reset_index(drop=True)
+           df.to_csv(finstore+name+'new.csv', index = False)
+        
+            
+    
+    
+    def minDataPrep2(self, name, date):
+        name = name.upper()
+        td = tcalendar.TradingDates()
+        date = td.dateStyle(date)
+        with open('paths.txt') as f:
+            paths = [line.rstrip() for line in f]
+        store_path = paths[1]
         head_name = store_path + date+ '_dvp.csv'
         file_exists = os.path.exists(head_name)
         if not file_exists:
@@ -67,6 +104,7 @@ class MinData:
         # dfn = self.priceStep(dfn)
         # dfn = self.prevFormat(dfn)
         return dfn
+
     
     def prevFormat(self,df):
         last = len(df)
@@ -275,26 +313,41 @@ class MinData:
         dfn['CVPT'] = Cvpt
         
         return dfn
-
     
-    def minDataGroup(self, name, start_date, end_date, store_path):
+    def minDataGroup(self, name, start_date, end_date, storage):
         name = name.upper()
         td = tcalendar.TradingDates()
         tdates = td.tradingDates(name,start_date, end_date)
         result = pd.DataFrame()
-        store_path = 'E:/Excel_Stock/Archive/'
+        calendarD = td.calendarDates('sep01', 'dec31')
+        with open('paths.txt') as f:
+            paths = [line.rstrip() for line in f]
+        storage1 = paths[0]; storage2 = paths[1]
+        
+        idx = calendarD.index('oct31')
+        
         for dt in tdates:
-            df = self.minDataPrep(name,dt,store_path) 
-            print (df)
-            result = pd.concat([result, df])      
-   
-        result = result.reset_index(drop=True)
-
+            idxDt = calendarD.index(dt)
+            if idxDt< idx:
+                df = self.minDataPrep1(name,dt,storage1)
+                print (df)
+                result = pd.concat([result, df]) 
+                result = result.reset_index(drop=True)
+            else:
+                df = self.minDataPrep2(name,dt) 
+                print (df)
+                result= pd.concat([result, df])  
+                result = result.reset_index(drop=True) 
+             
+            
         return result
     
     def minDataUpdate(self, sname=None, enddate=None):
         sname = sname.upper()
-        df = pd.read_csv(sname+".csv")
+        with open('paths.txt') as f:
+            paths = [line.rstrip() for line in f]
+        finstore = paths[2]
+        df = pd.read_csv(finstore+sname+".csv")
         sname = df["Name"].tolist()[0]
         months=['jan','feb','mar','apr','may','jun',
                 'jul','aug','sep','oct','nov','dec']
@@ -328,7 +381,7 @@ class MinData:
         
         dfu = dfu.drop_duplicates(keep='first')
         
-        dfu.to_csv(sname+".csv",index=False)
+        dfu.to_csv(finstore+sname+".csv",index=False)
             
         return dfu
     
@@ -393,9 +446,130 @@ class MinData:
         df['Pstep'] = p_step
         df['Vstep'] = v_step
         
-        return df           
-        
+        return df 
     
+    ##############################################################
+    def minDataPrep1(self,name, date, store_path):    
+        name = name.upper()
+        name_list = name
+        name += " - Latest Trades"
+        tcal = tcalendar.TradingDates()
+        head_name = tcal.dateStyle(date)
+        head_name = store_path+ head_name + "_dvp.xlsx"
+        file_exists = os.path.exists(head_name)
+        if not file_exists: 
+            print('file does not exist')
+        if file_exists:
+            finder = ["invested", "gainer", "loser"]
+            for s_name in finder:
+                df = pd.read_excel(head_name, sheet_name = s_name)
+                data_raw = []
+                if name in df.head(0):
+                    data_raw = df[name]
+                    break
+            if len(data_raw) == 0:
+                # return pd.DataFrame(), pd.DataFrame()
+                return pd.DataFrame()
+            data=data_raw.dropna(how='all')
+        else: return pd.DataFrame() #, pd.DataFrame()
+        
+        data = self.readFirstData(data)
+
+        Time = []; Type = [] ; Price = []; Volume = []; Trade = []; Value = []; 
+        ValperTrade = []; Color = []; Date = []; Name = []
+        k = 7
+        for i in range((len(data)-7)//6):    
+            Time.append(data[k]); Type.append(data[k+1]); Price.append(data[k+2])
+            Volume.append(data[k+3]); Trade.append(data[k+4]); Date.append(date); 
+            Name.append(name_list)
+            Value.append(data[k+2]*data[k+3]/100000)
+            ValperTrade.append(data[k+2]*data[k+3]/(max(1,100000*data[k+4])))
+            if data[k+1] == "Buy":
+                Color.append("yellow")
+            else: Color.append("red")
+            k += 6
+        #df frame
+        df = pd.DataFrame()
+        df['Name'] = Name
+        df['Date'] = Date
+        df['Time'] = Time[::-1]
+        df['Type'] = Type[::-1]
+        df['Price'] = Price[::-1]
+        df['Volume'] = Volume[::-1]
+        df['Trade'] = Trade[::-1]
+        df['Value'] = Value[::-1]
+        df['ValperTrade'] = ValperTrade[::-1]
+        df['Color'] = Color[::-1]
+        
+        self.priceStep(df)
+        
+        return df
+     
+    def readFirstData(self, data):
+        count = 5
+        dsize = len(data)
+        
+        while count<dsize:
+            if isinstance(data[dsize-count], time):
+                # print(data[dsize-count])
+                count += 5
+            else: 
+                # print(data[dsize-count])
+                count += -5
+                # print (count)
+                break
+        drest = data.drop(data.index[dsize-count:])
+        dmorning = data.drop(data.index[:dsize-count]).reset_index(drop=True)
+        
+        # If no morning data is available return the original data
+        if len(dmorning)==0:
+            return data
+        
+        # Price difference (in percentage) between the latest price and 
+        # the morning price
+        if isinstance(data[8],str):
+            price_diff = round((drest[9]-dmorning[1])/dmorning[1]*100)
+        else:
+            price_diff = 0
+        
+        # Number of input in the morning data
+        md_count = round(len(dmorning)/5)
+        
+        # Update morning data with derived 'buy' and 'sell' flags
+        # dmorn_new = pd.DataFrame()
+        dmorn_new = []
+        for start in range(0, dmorning.shape[0], 5):
+            # buy chunk
+            dmorning_chunk = dmorning.iloc[start: start+5].reset_index(drop=True)
+            price = dmorning_chunk[1]
+            bvol =round(dmorning_chunk[2]/2+ price_diff/100.*dmorning_chunk[2]/2)
+            btrade = max(1,round(dmorning_chunk[3]/2))
+            bval =round(price*bvol/100000,2)
+            dmorn_new.append(dmorning[0])
+            dmorn_new.append('buy')
+            dmorn_new.append(price)
+            dmorn_new.append(bvol)
+            dmorn_new.append(btrade)
+            dmorn_new.append(bval)
+            
+            # sell chunk
+            svol = dmorning_chunk[2] - bvol
+            strade = max(1, dmorning_chunk[3]-btrade)
+            sval = round(price*svol/100000, 2)
+            dmorn_new.append(dmorning[0])
+            dmorn_new.append('sell')
+            dmorn_new.append(price)
+            dmorn_new.append(svol)
+            dmorn_new.append(strade)
+            dmorn_new.append(sval)
+            
+        # Concatenate morning data to the rest 
+        dmnew = pd.Series(dmorn_new)
+        data_edited = pd.concat([drest,dmnew]).reset_index(drop=True)
+   
+        return data_edited        
+    ###################################################################
+
 class DayData:
     """
     Data Preparation
@@ -444,7 +618,7 @@ class DayData:
         if end_date == None: 
             end_date = dates[-1]
         td = tcalendar.TradingDates()
-        tdates = td.tradingDates(name,start_date, end_date)        
+        tdates = td.tradingDates(sname,start_date, end_date)        
         
         
         day_count = []
@@ -681,8 +855,8 @@ class DayDataCheck:
 
            
 
-name = 'KOHINOOR'
+# name = 'KOHINOOR'
 # date = 'nov10'
-md = MinData()
+# md = MinData()
 # dfn = md.minDataPrep(name,date)
 # dfn = md.minMiddayDataPrep(name)
