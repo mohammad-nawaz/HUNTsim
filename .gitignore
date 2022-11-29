@@ -5,7 +5,16 @@ paths.txt
 *.xlsx
 #any __pycache__ folder 
 __pycache__/
+#data storages
+rawdata_as/
+rawdata_sn/
+mindatastore/
 #pyc files
 *.pyc
 #ini files
 *.ini
+#txt files
+*.txt
+#vim swap files
+*.swp
+*.swo
