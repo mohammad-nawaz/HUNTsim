@@ -106,73 +106,9 @@ class MinData:
         return dfn
 
     
-    def prevFormat(self,df):
-        last = len(df)
-        name = df['Name'].tolist(); date = df['Date'].tolist();
-        p = df['Price'].tolist(); v = df['Volume'].tolist(); t = df['Trade'].tolist();
-        val = df['Value'].tolist(); tp = df['Type'].tolist(); clr = df['Color'].tolist();
-        vpt = df['ValperTrade'].tolist()
-        tm = df['Time'].tolist(); 
-
-        Name = []; Date = []; Time = []; Type =[]; Price = []; Volume = []; 
-        Trade = []; Value = [];  ValperTrade = []; Color = [];
-        Step = []; Pstep = []; Vstep = [];
-        firstflag = True
-        i = 0
-        while firstflag:
-            Name.append(name[i])
-            Date.append(date[i])
-            Price.append(p[i])
-            Volume.append(v[i])
-            Trade.append(t[i])
-            Value.append(val[i])
-            ValperTrade.append(vpt[i])
-            Type.append(tp[i])
-            Color.append(clr[i])
-            Time.append(tm[i])
-            Step.append(0)
-            Pstep.append(0)
-            Vstep.append(0)
-            i += 1
-            if not Price[-1] == Price[0]:
-                firstflag = False
-
-        k = i
-        while True:
-            if i == last-1:
-                break
-            flag = False
-
-            if int(tm[i][3:5])>= 1+int(tm[i-1][3:5]):
-                Name.append(name[i])
-                Date.append(date[i])
-                Price.append(p[i])
-                Volume.append(sum(v[k:i+1]))
-                Trade.append(sum(t[k:i+1]))
-                Value.append(sum(val[k:i+1]))
-                ValperTrade.append(round(sum(val[k:i+1])/sum(t[k:i+1]),2))
-                Type.append(tp[i])
-                Color.append(clr[i])
-                Time.append(tm[i])
-                if p[i] == p[k]:
-                    Step.append(0); Pstep.append(0); Vstep.append(0)
-                elif p[i]> p[k]:
-                    Step.append(1); Pstep.append(p[i]-p[k]); Vstep.append(v[i]*(p[i]-p[k]))
-                else:
-                    Step.append(-1); Pstep.append(p[i]-p[k]); Vstep.append(v[i]*(p[i]-p[k]))
-                k = i
-
-            i += 1
-
-        dfn = pd.DataFrame()
-        dfn['Name'] = Name; dfn['Date'] = Date; dfn['Time'] = Time; dfn['Type'] = Type;
-        dfn['Price'] = Price; dfn['Volume'] = Volume; dfn['Trade']= Trade;
-        dfn['Value'] = Value; dfn['ValperTrade'] = ValperTrade;  dfn['Color'] = Color
-        dfn['Step'] = Step; dfn['Pstep'] = Pstep; dfn['Vstep'] = Vstep
-
-        return dfn
-    
+   
     def minuteData(self, my_stock, name, date):
+        '''convert rawdata_as to rawdataframe_as'''
         
         Name = []; Date = []; Time = []; Type =[]; Price = []; Volume = []; Trade = []; cumTrade= []; 
         Value = [];  ValperTrade = []; Color = []
@@ -315,6 +251,9 @@ class MinData:
         return dfn
     
     def minDataGroup(self, name, start_date, end_date, storage):
+        """
+        Create minute data for multiple dates by concatenation
+        """
         name = name.upper()
         td = tcalendar.TradingDates()
         tdates = td.tradingDates(name,start_date, end_date)
@@ -343,6 +282,9 @@ class MinData:
         return result
     
     def minDataUpdate(self, sname=None, enddate=None):
+        """
+        Concatenate new data to the existing minute data file
+        """
         sname = sname.upper()
         with open('paths.txt') as f:
             paths = [line.rstrip() for line in f]
@@ -363,13 +305,13 @@ class MinData:
         last_tdate = df["Date"].tolist()[-1]
         
         td = tcalendar.TradingDates()
-        start_date = td.nextTradingDate(name,last_tdate)
+        start_date = td.nextTradingDate(sname,last_tdate)
 
         if enddate==None: 
             end_date = m+d
         else: 
             end_date = enddate
-        tdates = td.tradingDates(name,start_date, end_date)
+        tdates = td.tradingDates(sname,start_date, end_date)
         dfu = pd.DataFrame()        
         dfu = pd.concat([dfu,df])
         
@@ -386,6 +328,9 @@ class MinData:
         return dfu
     
     def minMiddayDataPrep(self,name):    
+        """
+        temporary addition of current data to analyse the latest market
+        """
         name = name.upper()
         file_name = "temp.csv"
         file_exists = os.path.exists(file_name)
@@ -421,6 +366,9 @@ class MinData:
         return dfn
     
     def priceStep(self, df):
+        """
+        Calculate steps and update dataframe
+        """
 
         step = []
         p_step = []
@@ -450,6 +398,9 @@ class MinData:
     
     ##############################################################
     def minDataPrep1(self,name, date, store_path):    
+        """
+        Create raw minute dataframe from raw data of stocknow
+        """
         name = name.upper()
         name_list = name
         name += " - Latest Trades"
@@ -506,6 +457,9 @@ class MinData:
         return df
      
     def readFirstData(self, data):
+        """
+        read first data by analysing data data (stocknow)
+        """
         count = 5
         dsize = len(data)
         
