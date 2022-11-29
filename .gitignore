@@ -8,3 +8,5 @@ __pycache__/
 *.pyc
 #ini files
 *.ini
+#txt files
+*.txt
