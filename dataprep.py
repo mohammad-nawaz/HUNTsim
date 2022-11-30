@@ -117,7 +117,7 @@ class MinData:
         step = []; p_step = []; v_step = []
 		##
         Pdel =[]; Pdelsq =[]; Valdel =[]; Valdelsq =[]; Tmdiff = [];
-        Cvpt = []
+        Cvpt = []; Bcvpt = []; Scvpt = []
 		
         gap = 16
         start = 6; end = len(my_stock)-11
@@ -154,6 +154,8 @@ class MinData:
                 Price.append(p); Volume.append(bv); Type.append('Buy'); Color.append('yellow');
                 Trade.append(bt); Value.append(bval); ValperTrade.append(round(bval/max(bt,1), 2));
                 vpt = bval; t = bt; Cvpt.append(round(bval/max(bt,1), 2))
+                Bcvpt.append(round(vpt/max(bt,1), 2))
+                Scvpt.append(0)
                 ###
                 Pdel.append(0); Pdelsq.append(0);
                 Tmdiff.append(0);
@@ -166,7 +168,9 @@ class MinData:
                 Pdel.append(0); Pdelsq.append(0);
                 Tmdiff.append(0)
                 ##
-                vpt = -sval; tr = st; Cvpt.append(round(sval/max(st,1), 2)) 
+                vpt = -sval; tr = st; Cvpt.append(round(sval/max(st,1), 2));
+                Scvpt.append(round(vpt/max(st,1), 2))
+                Bcvpt.append(0)
                 step.append(0); p_step.append(0); v_step.append(0)
             else:
                 flag = False
@@ -213,19 +217,27 @@ class MinData:
                         vpt += val
                         tr += t
                         Cvpt.append(vpt/tr)
+                        Bcvpt.append(vpt/tr)
+                        Scvpt.append(0)
                     else:
                         vpt = val
                         tr = t
                         Cvpt.append(vpt/tr)
+                        Bcvpt.append(vpt/tr)
+                        Scvpt.append(0)
                 if Type[ln] == 'Sell':
                     if Type[ln-1] == 'Sell':
                         vpt -= val
                         tr += t
                         Cvpt.append(vpt/tr)
+                        Scvpt.append(vpt/tr)
+                        Bcvpt.append(0)
                     else:
                         vpt = -val
                         tr += t
                         Cvpt.append(vpt/tr)
+                        Scvpt.append(vpt/tr)
+                        Bcvpt.append(0)
 
             k += gap
             #end of loop
@@ -243,12 +255,14 @@ class MinData:
         
         dfn['Step'] = step ; dfn['Pstep'] = p_step; dfn['Vstep'] = v_step
         
-        dfn['PriceDiff'] = Pdel; dfn['TimeDiff'] = Tmdiff;
+        dfn['PriceDiff'] = Pdel; dfn['Tstep'] = Tmdiff;
         
-        dfn['delP/delT'] =[m/max(1,n) for m,n in zip(Pdel,Tmdiff)]
+        dfn['Prate'] =[m/max(1,n) for m,n in zip(Pdel,Tmdiff)]
 		
         dfn['CVPT'] = Cvpt
-        
+        dfn['BCVPT'] = Bcvpt
+        dfn['SCVPT'] = Scvpt
+        dfn['SCVPT'] = abs(dfn['SCVPT'])
         return dfn
     
     def minDataGroup(self, name, start_date, end_date, storage):
