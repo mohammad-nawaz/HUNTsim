@@ -117,7 +117,7 @@ class MinData:
         step = []; p_step = []; v_step = []
 		##
         Pdel =[]; Pdelsq =[]; Valdel =[]; Valdelsq =[]; Tmdiff = [];
-        Cvpt = []; Bcvpt = []; Scvpt = []
+        Cvpt = []; Bcvpt = []; Scvpt = []; Ncvpt = []
 		
         gap = 16
         start = 6; end = len(my_stock)-11
@@ -126,7 +126,8 @@ class MinData:
         flag = True
         curPrice = float(my_stock[end].replace('    "Close": ',"").replace(',', ""))
         initPrice = float(my_stock[start].replace('    "Close": ',"").replace(',', ""))
-
+        tb,ts, tn =0,0,0
+        bvpt,svpt,nvpt = 0,0,0
         for i in range(num_steps):
             
             ln = len(Price)
@@ -142,7 +143,7 @@ class MinData:
 
             
             if flag and p == initPrice:
-                perc = 10*(curPrice - p)/p
+                perc = (curPrice - p)/p
                 bv = int((v//2) + perc*(v//2))
                 sv = v - bv
                 bt = int((t//2) + (perc*t//2))
@@ -151,35 +152,32 @@ class MinData:
 				
                 #######     buy      ########
                 Name.append(name); Date.append(date); Time.append(tm)
-                Price.append(p); Volume.append(bv); Type.append('Buy'); Color.append('yellow');
+                Price.append(p); Volume.append(bv);  Type.append('Buy'); Color.append('yellow');
                 Trade.append(bt); Value.append(bval); ValperTrade.append(round(bval/max(bt,1), 2));
-                vpt = bval; t = bt; Cvpt.append(round(bval/max(bt,1), 2))
-                Bcvpt.append(round(vpt/max(bt,1), 2))
+                bvpt += bval; tb += bt;
+                Bcvpt.append(round(bvpt/max(bt,1), 3))
                 Scvpt.append(0)
-                ###
+                Ncvpt.append(0)
                 Pdel.append(0); Pdelsq.append(0);
-                Tmdiff.append(0);
-                step.append(0); p_step.append(0); v_step.append(0)
-                ##########  sell   ########
+                ##########   sell     ##########
                 Name.append(name); Date.append(date); Time.append(tm)
                 Price.append(p); Volume.append(sv); Type.append('Sell'); Color.append('red');
                 Trade.append(st); Value.append(sval); ValperTrade.append(round(sval/max(st,1), 2));
-				###
                 Pdel.append(0); Pdelsq.append(0);
-                Tmdiff.append(0)
-                ##
-                vpt = -sval; tr = st; Cvpt.append(round(sval/max(st,1), 2));
-                Scvpt.append(round(vpt/max(st,1), 2))
+                svpt += sval; ts += st;
+                Scvpt.append(round(svpt/max(ts,1), 3))
                 Bcvpt.append(0)
-                step.append(0); p_step.append(0); v_step.append(0)
+                Ncvpt.append(0)
+                
             else:
                 flag = False
                 Name.append(name); Date.append(date); Time.append(tm); 
                 Price.append(p); Volume.append(v); Trade.append(t); 
                 val = round(p*v/100000,2); Value.append(val); ValperTrade.append(round(val/max(t,1), 2))
                 if p == Price[ln-1]:
-                    Type.append(Type[ln-1])
-                    Color.append(Color[ln-1])
+                    Type.append('Neutral')
+                    Color.append('Blue')
+                    
                 elif p>Price[ln-1]:
                     Type.append('Buy')
                     Color.append('yellow')
@@ -190,80 +188,72 @@ class MinData:
                 diffP = p - Price[ln-1]
                 Pdel.append(diffP)
                 Pdelsq.append(diffP**2)
-                x = Time[ln-1]; y = tm
-                if int(y[0:2])>int(x[0:2]):
-                    seconds = 60*int(y[3:5]) + int(y[-2:]) + 60 - int(x[-2:])
-                else:
-                    seconds = int(y[-2:]) + 60 - int(x[-2:])
-				
-                Tmdiff.append(seconds)
-			
-                ##Price Step
-                price_step = Price[ln]-Price[ln-1]
-                if price_step>0:
-                    step.append(1)
-    
-                elif price_step<0:
-                    step.append(-1)
-                elif price_step==0:
-                    step.append(0)
-    
-                p_step.append(price_step)
-                v_step.append(price_step*Value[i])
                 
                 ##----------CVPT-------#########
                 if Type[ln] == 'Buy':
-                    if Type[ln-1] =='Buy':
-                        vpt += val
-                        tr += t
-                        Cvpt.append(vpt/tr)
-                        Bcvpt.append(vpt/tr)
-                        Scvpt.append(0)
-                    else:
-                        vpt = val
-                        tr = t
-                        Cvpt.append(vpt/tr)
-                        Bcvpt.append(vpt/tr)
-                        Scvpt.append(0)
+                    bvpt += val
+                    tb += t
+                    Bcvpt.append(round(bvpt/tb,3))
+                    Scvpt.append(0)
+                    Ncvpt.append(0)
+                if Type[ln] == 'Neutral':
+                    nvpt += val
+                    tn += t
+                    Ncvpt.append(round(nvpt/tn,3))
+                    Bcvpt.append(0)
+                    Scvpt.append(0)
                 if Type[ln] == 'Sell':
-                    if Type[ln-1] == 'Sell':
-                        vpt -= val
-                        tr += t
-                        Cvpt.append(vpt/tr)
-                        Scvpt.append(vpt/tr)
-                        Bcvpt.append(0)
-                    else:
-                        vpt = -val
-                        tr += t
-                        Cvpt.append(vpt/tr)
-                        Scvpt.append(vpt/tr)
-                        Bcvpt.append(0)
+                    svpt += val
+                    ts += t
+                    Scvpt.append(round(svpt/ts,3))
+                    Bcvpt.append(0)
+                    Ncvpt.append(0)
+                    
 
             k += gap
             #end of loop
         
         dfn = pd.DataFrame()
         dfn['Name'] = Name; dfn['Date'] = Date; 
-        
-        # Time1 =[datetime.strptime(x, "%H:%M:%S").time() for x in Time]
-        dfn['Time'] = Time;
-        
-        dfn['Type'] = Type;
-        dfn['Price'] = Price; dfn['Volume'] = Volume; dfn['Trade']= Trade;
-        dfn['Value'] = Value; dfn['ValperTrade'] = ValperTrade;  dfn['Color'] = Color
+        dfn['Time'] = Time; dfn['Type'] = Type;
+        dfn['Price'] = Price; dfn['Volume'] = Volume; 
+        dfn['Trade']= Trade; dfn['Value'] = Value; 
+        dfn['ValperTrade'] = ValperTrade; 
+        dfn['Color'] = Color;
 		
-        
-        dfn['Step'] = step ; dfn['Pstep'] = p_step; dfn['Vstep'] = v_step
-        
-        dfn['PriceDiff'] = Pdel; dfn['Tstep'] = Tmdiff;
-        
-        dfn['Prate'] =[m/max(1,n) for m,n in zip(Pdel,Tmdiff)]
-		
-        dfn['CVPT'] = Cvpt
+        # dfn['CVPT'] = Cvpt
         dfn['BCVPT'] = Bcvpt
         dfn['SCVPT'] = Scvpt
-        dfn['SCVPT'] = abs(dfn['SCVPT'])
+        dfn['NCVPT'] = Ncvpt
+        dfn = self.priceStep(dfn)
+        dfn = self.addnewCols(dfn)
         return dfn
+    
+    def addnewCols(self,df):
+        Pbuy = [0 for x in range(len(df))]
+        Psell = [0 for x in range(len(df))]
+        Pneut = [0 for x in range(len(df))]
+        Vbuy, Vsell, Vneut = [0 for x in range(len(df))], [0 for x in range(len(df))], [0 for x in range(len(df))]
+        Valb, Vals, Valn = [0 for x in range(len(df))], [0 for x in range(len(df))], [0 for x in range(len(df))]
+        for i in range(len(df)):
+            if df['Type'][i] == "Buy":
+                Pbuy[i] = df['Price'][i]
+                Vbuy[i] = df['Volume'][i]
+                Valb[i] = df['Value'][i]
+            elif df['Type'][i] == "Sell":
+                Psell[i] = df['Price'][i]
+                Vsell[i] = df['Volume'][i]
+                Vals[i] = df['Value'][i]
+            else:
+                Pneut[i] = df['Price'][i]
+                Vneut[i] = df['Volume'][i]
+                Valn[i] = df['Value'][i]
+                
+        df['PriceB'] = Pbuy; df['VolumeB'] = Vbuy; df['ValueB'] = Valb;
+        df['PriceS'] = Psell; df['VolumeS'] = Vsell; df['ValueS'] = Vals;
+        df['PriceN'] = Pneut; df['VolumeN'] = Vneut; df['ValueN'] = Valn;
+        
+        return df
     
     def minDataGroup(self, name, start_date, end_date, storage):
         """
@@ -384,14 +374,14 @@ class MinData:
         """
         Calculate steps and update dataframe
         """
-
         step = []
         p_step = []
         v_step = []
-        
+        t_step = []
         for i in range(len(df)):
             if i==0: 
                 step.append(0); p_step.append(0); v_step.append(0)
+                t_step.append(0)
             else: 
                 price_step = df['Price'][i]-df['Price'][i-1]
                 if price_step>0:
@@ -401,21 +391,38 @@ class MinData:
                     step.append(-1)
                 elif price_step==0:
                     step.append(0)
+                if not type(df['Time'][i-1]) == str:
+                    x = df['Time'][i-1].strftime("%H:%M:%S") ; y = df['Time'][i].strftime("%H:%M:%S")   
+                else:
+                    x = df['Time'][i-1];  y = df['Time'][i]
+                if x[0:5] == y[0:5]:
+                    seconds = int(y[-2:])- int(x[-2:])
+                elif y[0:2] == x[0:2]:
+                    s1 = int(y[3:5]); s2 = int(x[3:5])
+                    seconds = 60*(s1-s2) + int(y[-2:]) - int(x[-2:])
+                elif not y[0:2] == x[0:2]:
+                    seconds =3600*(int(y[0:2])-int(x[0:2])-1) +60*(60- int(x[3:5])) + 60*(int(y[3:5])) + int(y[-2:]) - int(x[-2:])
+                
+                t_step.append(seconds)
 
                 p_step.append(price_step)
                 v_step.append(price_step*df['Value'][i])
-
         df['Step'] = step 
         df['Pstep'] = p_step
         df['Vstep'] = v_step
-        
+        df['Tstep'] = t_step
+        df['Prate'] = [round(m/max(1,n),3) for m,n in zip(p_step,t_step)]
         return df 
     
     ##############################################################
-    def minDataPrep1(self,name, date, store_path):    
+    def minDataPrep1(self,name, date, store_path=None):    
         """
         Create raw minute dataframe from raw data of stocknow
         """
+        with open('paths.txt') as f:
+            paths = [line.rstrip() for line in f]
+        if store_path == None:
+            store_path = paths[0]
         name = name.upper()
         name_list = name
         name += " - Latest Trades"
@@ -467,7 +474,8 @@ class MinData:
         df['ValperTrade'] = ValperTrade[::-1]
         df['Color'] = Color[::-1]
         
-        self.priceStep(df)
+        df = self.priceStep(df)
+        # df = self.addnewCols(df)
         
         return df
      
