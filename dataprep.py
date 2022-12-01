@@ -137,6 +137,7 @@ class MinData:
             v = int(my_stock[k+3].replace('    "Volume": ',"").replace(',', ""))
             t = int(my_stock[k+5].replace('    "Trade": ',"").replace(',', ""))
             cumTrade.append(t)
+            val = p*v/100000;
             if not i == 0:
                 t = t-cumTrade[i-1]
             tm = my_stock[k+7][-10:].replace('",',"")
@@ -144,28 +145,30 @@ class MinData:
             
             if flag and p == initPrice:
                 perc = (curPrice - p)/p
-                bv = int((v//2) + perc*(v//2))
-                sv = v - bv
-                bt = int((t//2) + (perc*t//2))
-                st = t -bt
-                bval = round(p*bv/100000,2); sval = round(p*sv/100000,2);
-				
+                
+                bv = max(int((v//2) + perc*(v//2)),1)
+                sv = max(v - bv,1)
+                
+                bt = max(int((t//2) + (perc*t//2)),1)
+                st = max(t -bt,1)
+                
+                bval = round(p*bv/100000,10); sval = round(p*sv/100000,10);
                 #######     buy      ########
                 Name.append(name); Date.append(date); Time.append(tm)
                 Price.append(p); Volume.append(bv);  Type.append('Buy'); Color.append('yellow');
-                Trade.append(bt); Value.append(bval); ValperTrade.append(round(bval/max(bt,1), 2));
+                Trade.append(bt); Value.append(bval); ValperTrade.append(round(bval/max(bt,1), 5));
                 bvpt += bval; tb += bt;
-                Bcvpt.append(round(bvpt/max(bt,1), 3))
+                Bcvpt.append(round(bvpt/max(bt,1), 4))
                 Scvpt.append(0)
                 Ncvpt.append(0)
                 Pdel.append(0); Pdelsq.append(0);
-                ##########   sell     ##########
+                ##########   sell     ##########\
                 Name.append(name); Date.append(date); Time.append(tm)
                 Price.append(p); Volume.append(sv); Type.append('Sell'); Color.append('red');
-                Trade.append(st); Value.append(sval); ValperTrade.append(round(sval/max(st,1), 2));
+                Trade.append(st); Value.append(sval); ValperTrade.append(round(sval/max(st,1), 5));
                 Pdel.append(0); Pdelsq.append(0);
                 svpt += sval; ts += st;
-                Scvpt.append(round(svpt/max(ts,1), 3))
+                Scvpt.append(round(svpt/max(ts,1), 4))
                 Bcvpt.append(0)
                 Ncvpt.append(0)
                 
@@ -173,7 +176,7 @@ class MinData:
                 flag = False
                 Name.append(name); Date.append(date); Time.append(tm); 
                 Price.append(p); Volume.append(v); Trade.append(t); 
-                val = round(p*v/100000,2); Value.append(val); ValperTrade.append(round(val/max(t,1), 2))
+                val = round(p*v/100000,5); Value.append(val); ValperTrade.append(round(val/max(t,1), 5))
                 if p == Price[ln-1]:
                     Type.append('Neutral')
                     Color.append('Blue')
@@ -193,19 +196,19 @@ class MinData:
                 if Type[ln] == 'Buy':
                     bvpt += val
                     tb += t
-                    Bcvpt.append(round(bvpt/tb,3))
+                    Bcvpt.append(round(bvpt/max(tb,1),3))
                     Scvpt.append(0)
                     Ncvpt.append(0)
                 if Type[ln] == 'Neutral':
                     nvpt += val
                     tn += t
-                    Ncvpt.append(round(nvpt/tn,3))
+                    Ncvpt.append(round(nvpt/max(tn,1),3))
                     Bcvpt.append(0)
                     Scvpt.append(0)
                 if Type[ln] == 'Sell':
                     svpt += val
                     ts += t
-                    Scvpt.append(round(svpt/ts,3))
+                    Scvpt.append(round(svpt/max(ts,1),3))
                     Bcvpt.append(0)
                     Ncvpt.append(0)
                     
