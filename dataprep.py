@@ -5,6 +5,7 @@ Created on Sat Nov 12 08:11:51 2022
 @authors: ali.reza.buet@gmail.com
           ali.nawaz.md@gmail.com
 """
+import os
 import os.path
 import pandas as pd
 import numpy as np
@@ -37,7 +38,7 @@ class MinData:
             # if len(df) == 0:
             #     df = self.minDataPrep2(name, date, rawAS_store)
         else:
-            df = self.minDataPrep2(name, date, rawAS_store)
+            df = self.minDataPrep2(name, date)
         return df
             
     def storeData(self, name, start_date, end_date):
@@ -63,6 +64,9 @@ class MinData:
             df2 = self.minDataGroup(name, 'oct31', end_date, storage2)
             df2.reset_index(drop=True)
             df2.to_csv(finstore+name+'new.csv', index = False)
+            df2 = self.minDataGroup(name, 'oct31', end_date, storage2, interpol = 'on')
+            df2.reset_index(drop=True)
+            df2.to_csv(finstore+name+'interpolated.csv', index = False)
             # elif endidx< idx:
             #     df = self.minDataGroup(name, start_date, end_date, storage1)
             #     df.to_csv(finstore+name+'1.csv')
@@ -75,11 +79,14 @@ class MinData:
            df = self.minDataGroup(name,start_date, end_date, storage2);
            df.reset_index(drop=True)
            df.to_csv(finstore+name+'new.csv', index = False)
+           df = self.minDataGroup(name,start_date, end_date, storage2, interpol = 'on');
+           df.reset_index(drop=True)
+           df.to_csv(finstore+name+'interpolated.csv', index = False)
         
             
     
     
-    def minDataPrep2(self, name, date):
+    def minDataPrep2(self, name, date, interpol= None):
         name = name.upper()
         td = tcalendar.TradingDates()
         date = td.dateStyle(date)
@@ -101,14 +108,18 @@ class MinData:
                 break
         if len(my_stock) == 0:
             return pd.DataFrame()
-        dfn = self.minuteData(my_stock, name, date)
+        if interpol == 'on':
+            dfn = self.minuteData(my_stock, name, date, interpol = 'on')
+        
+        else:
+            dfn = self.minuteData(my_stock, name, date)
         # dfn = self.priceStep(dfn)
         # dfn = self.prevFormat(dfn)
         return dfn
 
     
    
-    def minuteData(self, my_stock, name, date):
+    def minuteData(self, my_stock, name, date, interpol = None):
         '''convert rawdata_as to rawdataframe_as'''
         
         Name = []; Date = []; Time = []; Type =[]; Price = []; Volume = []; Trade = []; cumTrade= []; 
@@ -157,26 +168,26 @@ class MinData:
                 Name.append(name); Date.append(date); Time.append(tm)
                 Price.append(p); Volume.append(bv);  Type.append('Buy'); Color.append('yellow');
                 Trade.append(bt); Value.append(bval); ValperTrade.append(round(bval/max(bt,1), 5));
-                bvpt += bval; tb += bt;
-                Bcvpt.append(round(bvpt/max(bt,1), 4))
-                Scvpt.append(0)
-                Ncvpt.append(0)
-                Pdel.append(0); Pdelsq.append(0);
+                # bvpt += bval; tb += bt;
+                # Bcvpt.append(round(bvpt/max(tb,1), 4))
+                # Scvpt.append(0)
+                # Ncvpt.append(0)
+                # Pdel.append(0); Pdelsq.append(0);
                 ##########   sell     ##########\
                 Name.append(name); Date.append(date); Time.append(tm)
                 Price.append(p); Volume.append(sv); Type.append('Sell'); Color.append('red');
-                Trade.append(st); Value.append(sval); ValperTrade.append(round(sval/max(st,1), 5));
-                Pdel.append(0); Pdelsq.append(0);
-                svpt += sval; ts += st;
-                Scvpt.append(round(svpt/max(ts,1), 4))
-                Bcvpt.append(0)
-                Ncvpt.append(0)
+                Trade.append(st); Value.append(sval); ValperTrade.append(round(sval/max(st,1), 4));
+                # Pdel.append(0); Pdelsq.append(0);
+                # svpt += sval; ts += st;
+                # Scvpt.append(round(svpt/max(ts,1), 4))
+                # Bcvpt.append(0)
+                # Ncvpt.append(0)
                 
             else:
                 flag = False
                 Name.append(name); Date.append(date); Time.append(tm); 
                 Price.append(p); Volume.append(v); Trade.append(t); 
-                val = round(p*v/100000,5); Value.append(val); ValperTrade.append(round(val/max(t,1), 5))
+                val = round(p*v/100000,4); Value.append(val); ValperTrade.append(round(val/max(t,1), 4))
                 if p == Price[ln-1]:
                     Type.append('Neutral')
                     Color.append('Blue')
@@ -188,29 +199,29 @@ class MinData:
                     Type.append('Sell')
                     Color.append('red')
 				###
-                diffP = p - Price[ln-1]
-                Pdel.append(diffP)
-                Pdelsq.append(diffP**2)
+                # diffP = p - Price[ln-1]
+                # Pdel.append(diffP)
+                # Pdelsq.append(diffP**2)
                 
                 ##----------CVPT-------#########
-                if Type[ln] == 'Buy':
-                    bvpt += val
-                    tb += t
-                    Bcvpt.append(round(bvpt/max(tb,1),3))
-                    Scvpt.append(0)
-                    Ncvpt.append(0)
-                if Type[ln] == 'Neutral':
-                    nvpt += val
-                    tn += t
-                    Ncvpt.append(round(nvpt/max(tn,1),3))
-                    Bcvpt.append(0)
-                    Scvpt.append(0)
-                if Type[ln] == 'Sell':
-                    svpt += val
-                    ts += t
-                    Scvpt.append(round(svpt/max(ts,1),3))
-                    Bcvpt.append(0)
-                    Ncvpt.append(0)
+                # if Type[ln] == 'Buy':
+                #     bvpt += val
+                #     tb += t
+                #     Bcvpt.append(round(bvpt/max(tb,1),3))
+                #     Scvpt.append(0)
+                #     Ncvpt.append(0)
+                # if Type[ln] == 'Neutral':
+                #     nvpt += val
+                #     tn += t
+                #     Ncvpt.append(round(nvpt/max(tn,1),3))
+                #     Bcvpt.append(0)
+                #     Scvpt.append(0)
+                # if Type[ln] == 'Sell':
+                #     svpt += val
+                #     ts += t
+                #     Scvpt.append(round(svpt/max(ts,1),3))
+                #     Bcvpt.append(0)
+                #     Ncvpt.append(0)
                     
 
             k += gap
@@ -225,40 +236,257 @@ class MinData:
         dfn['Color'] = Color;
 		
         # dfn['CVPT'] = Cvpt
-        dfn['BCVPT'] = Bcvpt
-        dfn['SCVPT'] = Scvpt
-        dfn['NCVPT'] = Ncvpt
+        # dfn['BCVPT'] = Bcvpt
+        # dfn['SCVPT'] = Scvpt
+        # dfn['NCVPT'] = Ncvpt
         dfn = self.priceStep(dfn)
-        dfn = self.addnewCols(dfn)
+        if interpol == 'on':
+            dfn = self.interpolatedData(dfn)
+            with open('paths.txt') as f:
+                paths = [line.rstrip() for line in f]
+            store_path = paths[1]
+            dfn.to_csv(store_path+'temporaryfiletodelete.csv', index = False)
+            dfn = pd.read_csv(store_path+'temporaryfiletodelete.csv')
+            os.remove(store_path+'temporaryfiletodelete.csv')
+            # dfn = dfn.drop(['Step','Pstep','Vstep','Tstep', 'Prate'], axis = 1)
+            dfn = self.priceStep(dfn)
+            dfn = self.addnewCols(dfn)
         return dfn
+    
+    def interpolatedData(self,df):
+        df2 = pd.DataFrame()
+        df3 = pd.DataFrame()
+        idx1 = 0
+        rows = []; R = []
+        i = 0
+        
+        while i< len(df)-1:
+            rows.append(i)
+            i+=1
+            if df["Type"][i] == 'Neutral':
+                R.append(rows)
+                rows =[]    
+                while df['Type'][i] == 'Neutral':
+                    if i == len(df)-1:
+                        break
+                    i += 1
+        if len(R) == 0:
+            return df
+        elif len(R) == 1:
+            df2= pd.DataFrame()
+            df3 = df.iloc[R[0],:]
+            idx1 = R[0][-1]
+            idx2 = len(df)
+            if df['Type'][idx1] == 'Buy':
+                df2['Name'] = df['Name'][idx1+1:idx2]
+                df2['Date'] = df['Date'][idx1+1:idx2]
+                df2['Time'] = df['Time'][idx1+1:idx2]
+                df2['Type'] = ['Buy' for x in range(idx1+1, idx2)]
+                df2['Price'] = df['Price'][idx1+1:idx2]
+                df2['Volume'] = df['Volume'][idx1+1:idx2]
+                df2['Trade'] = df['Trade'][idx1+1:idx2]
+                df2['Value'] = df['Value'][idx1+1:idx2]
+                df2['ValperTrade'] = df['ValperTrade'][idx1+1:idx2]
+                df2['Color'] =  ['yellow' for x in range(idx1+1, idx2)]
+                df3 = pd.concat([df3,df2])
+                df2 = pd.DataFrame()
+                return df3
+            else:
+                df2['Name'] = df['Name'][idx1+1:idx2]
+                df2['Date'] = df['Date'][idx1+1:idx2]
+                df2['Time'] = df['Time'][idx1+1:idx2]
+                df2['Type'] = ['Sell' for x in range(idx1+1, idx2)]
+                df2['Price'] = df['Price'][idx1+1:idx2]
+                df2['Volume'] = df['Volume'][idx1+1:idx2]
+                df2['Trade'] = df['Trade'][idx1+1:idx2]
+                df2['Value'] = df['Value'][idx1+1:idx2]
+                df2['ValperTrade'] = df['ValperTrade'][idx1+1:idx2]
+                df2['Color'] =  ['red' for x in range(idx1+1, idx2)]
+                df3 = pd.concat([df3,df2])
+                df2 = pd.DataFrame()
+                return df3
+        vs = df['Vstep'].tolist()
+        vol = df['Volume'].tolist()
+        for i in range(len(R)-1):            
+            df2 = df.iloc[R[i],:]               
+            df3 = pd.concat([df3,df2])
+            df2 = pd.DataFrame()
+            idx1 = R[i][-1];
+            idx2 = R[i+1][0];
+            if vs[idx1]> 0 and vs[idx2] > 0:
+                df2['Name'] = df['Name'][idx1+1:idx2]
+                df2['Date'] = df['Date'][idx1+1:idx2]
+                df2['Time'] = df['Time'][idx1+1:idx2]
+                df2['Type'] = ['Buy' for x in range(idx1+1, idx2)]
+                df2['Price'] = df['Price'][idx1+1:idx2]
+                df2['Volume'] = df['Volume'][idx1+1:idx2]
+                df2['Trade'] = df['Trade'][idx1+1:idx2]
+                df2['Value'] = df['Value'][idx1+1:idx2]
+                df2['ValperTrade'] = df['ValperTrade'][idx1+1:idx2]
+                df2['Color'] =  ['yellow' for x in range(idx1+1, idx2)]
+                df3 = pd.concat([df3,df2])
+                df2 = pd.DataFrame()
+                # ro = []
+                # for j in range(idx1+1, idx2):
+                #    df['Type'][j] = 'Buy';
+                #    df['Color'][j] = 'yellow'
+                #    ro.append(j)
+                # df2 = df.iloc[ro,:]
+                # df3 = pd.concat([df3,df2])
+                # df2 = pd.DataFrame()
+            elif vs[idx1]< 0 and vs[idx2]< 0:
+                df2['Name'] = df['Name'][idx1+1:idx2]
+                df2['Date'] = df['Date'][idx1+1:idx2]
+                df2['Time'] = df['Time'][idx1+1:idx2]
+                df2['Type'] = ['Sell' for x in range(idx1+1, idx2)]
+                df2['Price'] = df['Price'][idx1+1:idx2]
+                df2['Volume'] = df['Volume'][idx1+1:idx2]
+                df2['Trade'] = df['Trade'][idx1+1:idx2]
+                df2['Value'] = df['Value'][idx1+1:idx2]
+                df2['ValperTrade'] = df['ValperTrade'][idx1+1:idx2]
+                df2['Color'] =  ['red' for x in range(idx1+1, idx2)]
+                df3 = pd.concat([df3,df2])
+                df2 = pd.DataFrame()
+                # ro = []
+                # for j in range(idx1+1, idx2):
+                #    df['Type'][j] = 'Sell'
+                #    df['Color'][j] = 'red'
+                #    ro.append(j)
+                # df2 = df.iloc[ro,:]
+                # df3 = pd.concat([df3,df2])
+                # df2 = pd.DataFrame() 
+            
+            elif vs[idx1]*vs[idx2] < 0:
+                perc1 =  vs[idx1]/(abs(vs[idx1])+abs(vs[idx2]))
+                perc2 =  vs[idx2]/(abs(vs[idx1])+abs(vs[idx2]))
+                if perc1>0:
+                    perc3 = perc1
+                    perc1 = perc2
+                    perc2 = perc3
+                gap = idx2-idx1 -1
+                dfnew = pd.DataFrame()
+                Name = []; Date =[];Time =[]; Type=[];
+                Price =[]; Volume =[]; Trade=[];Trade=[];
+                Value=[]; ValperTrade= []; Color= []; Step =[]; Pstep = [];
+                Vstep =[]; Tstep=[]; Prate=[]
+                for j in range(idx1+1,idx2):
+                    vol1 = max(int(abs(perc1)*vol[j]),1); vol2 = max(int(abs(perc2)*vol[j]),1)
+                    val1 = round(df['Price'][j]*vol1/100000,5)
+                    val2 = round(df['Price'][j]*vol2/100000,5)
+                    tr1 = max(int(abs(perc1)*df['Trade'][j]),1);
+                    tr2 = max(df['Trade'][j] -tr1,1)
+                    Name.append(df['Name'][j])
+                    Name.append(df['Name'][j])
+                    Date.append(df['Date'][j])
+                    Date.append(df['Date'][j])
+                    Time.append(df['Time'][j])
+                    Time.append(df['Time'][j])
+                    Type.append('Sell')
+                    Type.append('Buy')
+                    Price.append(df['Price'][j])
+                    Price.append(df['Price'][j])
+                    Volume.append(vol1)
+                    Volume.append(vol2)
+                    Trade.append(tr1)
+                    Trade.append(tr2)
+                    Value.append(val1)
+                    Value.append(val2)
+                    ValperTrade.append(round(val1/tr1,5))
+                    ValperTrade.append(round(val2/tr2,5))
+                    Color.append('red')
+                    Color.append('yellow')
+                    Step.append(0); Step.append(0)
+                    Vstep.append(0); Vstep.append(0)
+                    Pstep.append(0); Pstep.append(0)
+                    Tstep.append(0); Tstep.append(0)
+                    Prate.append(0); Prate.append(0)
+                
+                dfnew['Name'] = Name; dfnew['Date'] = Date;
+                dfnew['Time'] = Time; dfnew['Type'] = Type;
+                dfnew['Price'] = Price; dfnew['Volume'] = Volume; dfnew['Trade'] = Trade
+                dfnew['Value'] = Value; dfnew['ValperTrade']= ValperTrade;
+                dfnew['Color'] = Color
+                dfnew['Step'] = Step; dfnew['Pstep'] = Pstep;
+                dfnew['Vstep'] = Vstep; dfnew['Tstep'] = Tstep;
+                dfnew['Prate'] = Prate
+                df3 = pd.concat([df3,dfnew])
+        
+        idx1 = R[-1][-1]
+        idx2 = len(df)
+        if df['Type'][idx1] == 'Buy':
+            df2['Name'] = df['Name'][idx1+1:idx2]
+            df2['Date'] = df['Date'][idx1+1:idx2]
+            df2['Time'] = df['Time'][idx1+1:idx2]
+            df2['Type'] = ['Buy' for x in range(idx1+1, idx2)]
+            df2['Price'] = df['Price'][idx1+1:idx2]
+            df2['Volume'] = df['Volume'][idx1+1:idx2]
+            df2['Trade'] = df['Trade'][idx1+1:idx2]
+            df2['Value'] = df['Value'][idx1+1:idx2]
+            df2['ValperTrade'] = df['ValperTrade'][idx1+1:idx2]
+            df2['Color'] =  ['yellow' for x in range(idx1+1, idx2)]
+            df3 = pd.concat([df3,df2])
+            df2 = pd.DataFrame()
+        else:
+            df2['Name'] = df['Name'][idx1+1:idx2]
+            df2['Date'] = df['Date'][idx1+1:idx2]
+            df2['Time'] = df['Time'][idx1+1:idx2]
+            df2['Type'] = ['Sell' for x in range(idx1+1, idx2)]
+            df2['Price'] = df['Price'][idx1+1:idx2]
+            df2['Volume'] = df['Volume'][idx1+1:idx2]
+            df2['Trade'] = df['Trade'][idx1+1:idx2]
+            df2['Value'] = df['Value'][idx1+1:idx2]
+            df2['ValperTrade'] = df['ValperTrade'][idx1+1:idx2]
+            df2['Color'] =  ['red' for x in range(idx1+1, idx2)]
+            df3 = pd.concat([df3,df2])
+            df2 = pd.DataFrame()
+        # df2 = df.iloc[ro,:]
+        # df3 = pd.concat([df3,df2])
+        # df2 = pd.DataFrame()
+        return df3
     
     def addnewCols(self,df):
         Pbuy = [0 for x in range(len(df))]
         Psell = [0 for x in range(len(df))]
-        Pneut = [0 for x in range(len(df))]
-        Vbuy, Vsell, Vneut = [0 for x in range(len(df))], [0 for x in range(len(df))], [0 for x in range(len(df))]
-        Valb, Vals, Valn = [0 for x in range(len(df))], [0 for x in range(len(df))], [0 for x in range(len(df))]
+        # Pneut = [0 for x in range(len(df))]
+        Vbuy, Vsell = [0 for x in range(len(df))], [0 for x in range(len(df))]
+        Valb, Vals = [0 for x in range(len(df))], [0 for x in range(len(df))]
+        Tbuy, Tsell = [0 for x in range(len(df))], [0 for x in range(len(df))]
+        BCVPT, SCVPT = [0 for x in range(len(df))], [0 for x in range(len(df))]
+        bt, st = 0, 0
+        b,s = 0,0
         for i in range(len(df)):
             if df['Type'][i] == "Buy":
                 Pbuy[i] = df['Price'][i]
                 Vbuy[i] = df['Volume'][i]
                 Valb[i] = df['Value'][i]
+                Tbuy[i] = df['Trade'][i]
+                b += Valb[i]
+                bt += Tbuy[i]
+                BCVPT[i] = (round(b/bt,4))
             elif df['Type'][i] == "Sell":
                 Psell[i] = df['Price'][i]
                 Vsell[i] = df['Volume'][i]
                 Vals[i] = df['Value'][i]
-            else:
-                Pneut[i] = df['Price'][i]
-                Vneut[i] = df['Volume'][i]
-                Valn[i] = df['Value'][i]
+                Tsell[i] = df['Trade'][i]
+                s += Vals[i]
+                st += Tsell[i]
+                SCVPT[i] = (round(s/st,4))
+            # else:
+            #     Pneut[i] = df['Price'][i]
+            #     Vneut[i] = df['Volume'][i]
+            #     Valn[i] = df['Value'][i]
+            #     Tneut[i] = df['Trade'][i]
                 
-        df['PriceB'] = Pbuy; df['VolumeB'] = Vbuy; df['ValueB'] = Valb;
-        df['PriceS'] = Psell; df['VolumeS'] = Vsell; df['ValueS'] = Vals;
-        df['PriceN'] = Pneut; df['VolumeN'] = Vneut; df['ValueN'] = Valn;
-        
+        df['PriceB'] = Pbuy; df['VolumeB'] = Vbuy; df['ValueB'] = Valb; df['TradeB'] = Tbuy;
+        df['PriceS'] = Psell; df['VolumeS'] = Vsell; df['ValueS'] = Vals; df['TradeS'] = Tsell;
+        # df['PriceN'] = Pneut; df['VolumeN'] = Vneut; df['ValueN'] = Valn; df['TradeN'] = Tneut;
+        df['BCVPT'] = BCVPT
+        df['SCVPT'] = SCVPT
         return df
     
-    def minDataGroup(self, name, start_date, end_date, storage):
+    
+    
+    def minDataGroup(self, name, start_date, end_date, storage, interpol = None):
         """
         Create minute data for multiple dates by concatenation
         """
@@ -281,7 +509,10 @@ class MinData:
                 result = pd.concat([result, df]) 
                 result = result.reset_index(drop=True)
             else:
-                df = self.minDataPrep2(name,dt) 
+                if interpol == 'on':
+                    df = self.minDataPrep2(name,dt,interpol='on')
+                else:
+                    df = self.minDataPrep2(name,dt) 
                 print (df)
                 result= pd.concat([result, df])  
                 result = result.reset_index(drop=True) 
@@ -297,7 +528,7 @@ class MinData:
         with open('paths.txt') as f:
             paths = [line.rstrip() for line in f]
         finstore = paths[2]
-        df = pd.read_csv(finstore+sname+".csv")
+        df = pd.read_csv(finstore+sname+"interpolated.csv")
         sname = df["Name"].tolist()[0]
         months=['jan','feb','mar','apr','may','jun',
                 'jul','aug','sep','oct','nov','dec']
@@ -324,14 +555,14 @@ class MinData:
         dfu = pd.concat([dfu,df])
         
         for dt in tdates: 
-            dfn = self.minDataPrep(sname, dt)
+            dfn = self.minDataPrep2(sname, dt, interpol = 'on')
             dfu = pd.concat([dfu,dfn])
         
         dfu = dfu.reset_index(drop=True)
         
         dfu = dfu.drop_duplicates(keep='first')
         
-        dfu.to_csv(finstore+sname+".csv",index=False)
+        dfu.to_csv(finstore+sname+"interpolated.csv",index=False)
             
         return dfu
     
@@ -370,7 +601,7 @@ class MinData:
             d = str(d)
         midday_date = m+d
         
-        dfn = self.minuteData(my_stock, name, midday_date)
+        dfn = self.minuteData(my_stock, name, midday_date, interpol='on')
         return dfn
     
     def priceStep(self, df):
@@ -478,7 +709,6 @@ class MinData:
         df['Color'] = Color[::-1]
         
         df = self.priceStep(df)
-        # df = self.addnewCols(df)
         
         return df
      
@@ -818,7 +1048,11 @@ class DayDataCheck:
     """
     """
     def dayDataCheck(self, sname, midday_data = None):
-        sname = sname.upper()+'.csv'
+        sname = sname.upper()
+        with open('paths.txt') as f:
+            paths = [line.rstrip() for line in f]
+        store = paths[2]
+        sname = store + sname +'interpolated.csv'
         dfmin = pd.read_csv(sname)
         
         # Read configuration file
