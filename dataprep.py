@@ -34,14 +34,25 @@ class MinData:
         rawSN_store = paths[0]
         rawAS_store = paths[1]
         if idx2< idx1:
-            df = self.minDataPrep1(name, date, rawSN_store)
+            df = self.min_SNdata(name, date, rawSN_store)
             # if len(df) == 0:
-            #     df = self.minDataPrep2(name, date, rawAS_store)
+            #     df = self.min_ASdata(name, date, rawAS_store)
         else:
-            df = self.minDataPrep2(name, date)
+            df = self.min_ASdata(name, date)
         return df
             
     def storeData(self, name, start_date, end_date):
+        '''
+        
+
+        Parameters
+        ----------
+        
+        Returns None
+        -------
+        Stores minutedata from start _date to the end_date
+
+        '''
         name = name.upper()
         td = tcalendar.TradingDates()
         start_date = td.dateStyle(start_date)
@@ -86,7 +97,26 @@ class MinData:
             
     
     
-    def minDataPrep2(self, name, date, interpol= None):
+    def min_ASdata(self, name, date, interpol= None):
+        '''
+        
+        
+        Parameters
+        ----------
+        name : TYPE
+            DESCRIPTION.
+        date : TYPE
+            DESCRIPTION.
+        interpol : TYPE, optional
+            DESCRIPTION. The default is None.
+
+        Returns
+        -------
+        Dataframe of AmarStock Data
+        if  interpol is 'on', the output has the interpolated
+        data
+
+        '''
         name = name.upper()
         td = tcalendar.TradingDates()
         date = td.dateStyle(date)
@@ -125,11 +155,6 @@ class MinData:
         Name = []; Date = []; Time = []; Type =[]; Price = []; Volume = []; Trade = []; cumTrade= []; 
         Value = [];  ValperTrade = []; Color = []
 		##
-        step = []; p_step = []; v_step = []
-		##
-        Pdel =[]; Pdelsq =[]; Valdel =[]; Valdelsq =[]; Tmdiff = [];
-        Cvpt = []; Bcvpt = []; Scvpt = []; Ncvpt = []
-		
         gap = 16
         start = 6; end = len(my_stock)-11
         num_steps = 1+ (end-start)//gap 
@@ -153,7 +178,7 @@ class MinData:
                 t = t-cumTrade[i-1]
             tm = my_stock[k+7][-10:].replace('",',"")
 
-            
+            ## the Firstdata_Read Block. flag is True till the firstdata is fully read
             if flag and p == initPrice:
                 perc = (curPrice - p)/p
                 
@@ -168,21 +193,14 @@ class MinData:
                 Name.append(name); Date.append(date); Time.append(tm)
                 Price.append(p); Volume.append(bv);  Type.append('Buy'); Color.append('yellow');
                 Trade.append(bt); Value.append(bval); ValperTrade.append(round(bval/max(bt,1), 5));
-                # bvpt += bval; tb += bt;
-                # Bcvpt.append(round(bvpt/max(tb,1), 4))
-                # Scvpt.append(0)
-                # Ncvpt.append(0)
-                # Pdel.append(0); Pdelsq.append(0);
+                
                 ##########   sell     ##########\
                 Name.append(name); Date.append(date); Time.append(tm)
                 Price.append(p); Volume.append(sv); Type.append('Sell'); Color.append('red');
                 Trade.append(st); Value.append(sval); ValperTrade.append(round(sval/max(st,1), 4));
-                # Pdel.append(0); Pdelsq.append(0);
-                # svpt += sval; ts += st;
-                # Scvpt.append(round(svpt/max(ts,1), 4))
-                # Bcvpt.append(0)
-                # Ncvpt.append(0)
                 
+            #################### The  Firstdata_read Block ends here ################################    
+            
             else:
                 flag = False
                 Name.append(name); Date.append(date); Time.append(tm); 
@@ -198,30 +216,7 @@ class MinData:
                 else: 
                     Type.append('Sell')
                     Color.append('red')
-				###
-                # diffP = p - Price[ln-1]
-                # Pdel.append(diffP)
-                # Pdelsq.append(diffP**2)
-                
-                ##----------CVPT-------#########
-                # if Type[ln] == 'Buy':
-                #     bvpt += val
-                #     tb += t
-                #     Bcvpt.append(round(bvpt/max(tb,1),3))
-                #     Scvpt.append(0)
-                #     Ncvpt.append(0)
-                # if Type[ln] == 'Neutral':
-                #     nvpt += val
-                #     tn += t
-                #     Ncvpt.append(round(nvpt/max(tn,1),3))
-                #     Bcvpt.append(0)
-                #     Scvpt.append(0)
-                # if Type[ln] == 'Sell':
-                #     svpt += val
-                #     ts += t
-                #     Scvpt.append(round(svpt/max(ts,1),3))
-                #     Bcvpt.append(0)
-                #     Ncvpt.append(0)
+				
                     
 
             k += gap
@@ -235,31 +230,36 @@ class MinData:
         dfn['ValperTrade'] = ValperTrade; 
         dfn['Color'] = Color;
 		
-        # dfn['CVPT'] = Cvpt
-        # dfn['BCVPT'] = Bcvpt
-        # dfn['SCVPT'] = Scvpt
-        # dfn['NCVPT'] = Ncvpt
         dfn = self.priceStep(dfn)
+        
         if interpol == 'on':
             dfn = self.interpolatedData(dfn)
-            with open('paths.txt') as f:
-                paths = [line.rstrip() for line in f]
-            store_path = paths[1]
-            dfn.to_csv(store_path+'temporaryfiletodelete.csv', index = False)
-            dfn = pd.read_csv(store_path+'temporaryfiletodelete.csv')
-            os.remove(store_path+'temporaryfiletodelete.csv')
-            # dfn = dfn.drop(['Step','Pstep','Vstep','Tstep', 'Prate'], axis = 1)
             dfn = self.priceStep(dfn)
             dfn = self.addnewCols(dfn)
         return dfn
     
     def interpolatedData(self,df):
+        '''
+        
+
+        Parameters
+        ----------
+        df : primary data_frame of AmarStock minute Data
+
+        Returns
+        -------
+        More prepared dataframe, which contains
+        Interpolated data for the blue(neutral) ones
+
+        '''
         df2 = pd.DataFrame()
         df3 = pd.DataFrame()
         idx1 = 0
         rows = []; R = []
         i = 0
         
+        ## This loop forms R, which is the list of lists. 
+        ## the lists hold the indices of the non-neutral trades
         while i< len(df)-1:
             rows.append(i)
             i+=1
@@ -270,8 +270,11 @@ class MinData:
                     if i == len(df)-1:
                         break
                     i += 1
+        # Case where no set of neutral values exists in the whole day.           
         if len(R) == 0:
             return df
+        
+        # Case where only the day_end's set of neutral values exists.
         elif len(R) == 1:
             df2= pd.DataFrame()
             df3 = df.iloc[R[0],:]
@@ -305,6 +308,8 @@ class MinData:
                 df3 = pd.concat([df3,df2])
                 df2 = pd.DataFrame()
                 return df3
+            
+        # general case:
         vs = df['Vstep'].tolist()
         vol = df['Volume'].tolist()
         for i in range(len(R)-1):            
@@ -313,6 +318,7 @@ class MinData:
             df2 = pd.DataFrame()
             idx1 = R[i][-1];
             idx2 = R[i+1][0];
+            
             if vs[idx1]> 0 and vs[idx2] > 0:
                 df2['Name'] = df['Name'][idx1+1:idx2]
                 df2['Date'] = df['Date'][idx1+1:idx2]
@@ -326,14 +332,7 @@ class MinData:
                 df2['Color'] =  ['yellow' for x in range(idx1+1, idx2)]
                 df3 = pd.concat([df3,df2])
                 df2 = pd.DataFrame()
-                # ro = []
-                # for j in range(idx1+1, idx2):
-                #    df['Type'][j] = 'Buy';
-                #    df['Color'][j] = 'yellow'
-                #    ro.append(j)
-                # df2 = df.iloc[ro,:]
-                # df3 = pd.concat([df3,df2])
-                # df2 = pd.DataFrame()
+                
             elif vs[idx1]< 0 and vs[idx2]< 0:
                 df2['Name'] = df['Name'][idx1+1:idx2]
                 df2['Date'] = df['Date'][idx1+1:idx2]
@@ -346,15 +345,7 @@ class MinData:
                 df2['ValperTrade'] = df['ValperTrade'][idx1+1:idx2]
                 df2['Color'] =  ['red' for x in range(idx1+1, idx2)]
                 df3 = pd.concat([df3,df2])
-                df2 = pd.DataFrame()
-                # ro = []
-                # for j in range(idx1+1, idx2):
-                #    df['Type'][j] = 'Sell'
-                #    df['Color'][j] = 'red'
-                #    ro.append(j)
-                # df2 = df.iloc[ro,:]
-                # df3 = pd.concat([df3,df2])
-                # df2 = pd.DataFrame() 
+                df2 = pd.DataFrame() 
             
             elif vs[idx1]*vs[idx2] < 0:
                 perc1 =  vs[idx1]/(abs(vs[idx1])+abs(vs[idx2]))
@@ -370,31 +361,23 @@ class MinData:
                 Value=[]; ValperTrade= []; Color= []; Step =[]; Pstep = [];
                 Vstep =[]; Tstep=[]; Prate=[]
                 for j in range(idx1+1,idx2):
-                    vol1 = max(int(abs(perc1)*vol[j]),1); vol2 = max(int(abs(perc2)*vol[j]),1)
+                    vol1 = max(int(abs(perc1)*vol[j]),1); vol2 = max(abs(vol[j]-vol1),1)
                     val1 = round(df['Price'][j]*vol1/100000,5)
                     val2 = round(df['Price'][j]*vol2/100000,5)
                     tr1 = max(int(abs(perc1)*df['Trade'][j]),1);
                     tr2 = max(df['Trade'][j] -tr1,1)
-                    Name.append(df['Name'][j])
-                    Name.append(df['Name'][j])
-                    Date.append(df['Date'][j])
-                    Date.append(df['Date'][j])
-                    Time.append(df['Time'][j])
-                    Time.append(df['Time'][j])
-                    Type.append('Sell')
-                    Type.append('Buy')
-                    Price.append(df['Price'][j])
-                    Price.append(df['Price'][j])
-                    Volume.append(vol1)
-                    Volume.append(vol2)
-                    Trade.append(tr1)
-                    Trade.append(tr2)
-                    Value.append(val1)
-                    Value.append(val2)
+                    
+                    Name.append(df['Name'][j]); Name.append(df['Name'][j])
+                    Date.append(df['Date'][j]); Date.append(df['Date'][j])
+                    Time.append(df['Time'][j]); Time.append(df['Time'][j])
+                    Type.append('Sell'); Type.append('Buy')
+                    Price.append(df['Price'][j]); Price.append(df['Price'][j])
+                    Volume.append(vol1); Volume.append(vol2)
+                    Trade.append(tr1); Trade.append(tr2)
+                    Value.append(val1); Value.append(val2)
                     ValperTrade.append(round(val1/tr1,5))
                     ValperTrade.append(round(val2/tr2,5))
-                    Color.append('red')
-                    Color.append('yellow')
+                    Color.append('red'); Color.append('yellow')
                     Step.append(0); Step.append(0)
                     Vstep.append(0); Vstep.append(0)
                     Pstep.append(0); Pstep.append(0)
@@ -439,12 +422,23 @@ class MinData:
             df2['Color'] =  ['red' for x in range(idx1+1, idx2)]
             df3 = pd.concat([df3,df2])
             df2 = pd.DataFrame()
-        # df2 = df.iloc[ro,:]
-        # df3 = pd.concat([df3,df2])
-        # df2 = pd.DataFrame()
-        return df3
+            
+        with open('paths.txt') as f:
+            paths = [line.rstrip() for line in f]
+        store_path = paths[1]
+        df3.to_csv(store_path+'temporaryfiletodelete.csv', index = False)
+        df = pd.read_csv(store_path+'temporaryfiletodelete.csv')
+        os.remove(store_path+'temporaryfiletodelete.csv')
+        
+        return df
     
     def addnewCols(self,df):
+        '''
+        Buy and Sell distinct columns are made for:
+            Price, Volume, Value, Trade
+        Cumulative Buy ValperTrade(BCVPT) &
+        Cumulative Sell ValperTrade(SCVPT) columns are added
+        '''
         Pbuy = [0 for x in range(len(df))]
         Psell = [0 for x in range(len(df))]
         # Pneut = [0 for x in range(len(df))]
@@ -471,11 +465,7 @@ class MinData:
                 s += Vals[i]
                 st += Tsell[i]
                 SCVPT[i] = (round(s/st,4))
-            # else:
-            #     Pneut[i] = df['Price'][i]
-            #     Vneut[i] = df['Volume'][i]
-            #     Valn[i] = df['Value'][i]
-            #     Tneut[i] = df['Trade'][i]
+           
                 
         df['PriceB'] = Pbuy; df['VolumeB'] = Vbuy; df['ValueB'] = Valb; df['TradeB'] = Tbuy;
         df['PriceS'] = Psell; df['VolumeS'] = Vsell; df['ValueS'] = Vals; df['TradeS'] = Tsell;
@@ -504,15 +494,15 @@ class MinData:
         for dt in tdates:
             idxDt = calendarD.index(dt)
             if idxDt< idx:
-                df = self.minDataPrep1(name,dt,storage1)
+                df = self.min_SNdata(name,dt,storage1)
                 print (df)
                 result = pd.concat([result, df]) 
                 result = result.reset_index(drop=True)
             else:
                 if interpol == 'on':
-                    df = self.minDataPrep2(name,dt,interpol='on')
+                    df = self.min_ASdata(name,dt,interpol='on')
                 else:
-                    df = self.minDataPrep2(name,dt) 
+                    df = self.min_ASdata(name,dt) 
                 print (df)
                 result= pd.concat([result, df])  
                 result = result.reset_index(drop=True) 
@@ -520,7 +510,7 @@ class MinData:
             
         return result
     
-    def minDataUpdate(self, sname=None, enddate=None):
+    def minDataUpdate(self, sname, enddate=None):
         """
         Concatenate new data to the existing minute data file
         """
@@ -529,7 +519,7 @@ class MinData:
             paths = [line.rstrip() for line in f]
         finstore = paths[2]
         df = pd.read_csv(finstore+sname+"interpolated.csv")
-        sname = df["Name"].tolist()[0]
+        # sname = df["Name"].tolist()[0]
         months=['jan','feb','mar','apr','may','jun',
                 'jul','aug','sep','oct','nov','dec']
         
@@ -555,7 +545,7 @@ class MinData:
         dfu = pd.concat([dfu,df])
         
         for dt in tdates: 
-            dfn = self.minDataPrep2(sname, dt, interpol = 'on')
+            dfn = self.min_ASdata(sname, dt, interpol = 'on')
             dfu = pd.concat([dfu,dfn])
         
         dfu = dfu.reset_index(drop=True)
@@ -649,7 +639,7 @@ class MinData:
         return df 
     
     ##############################################################
-    def minDataPrep1(self,name, date, store_path=None):    
+    def min_SNdata(self,name, date, store_path=None):    
         """
         Create raw minute dataframe from raw data of stocknow
         """
@@ -819,6 +809,7 @@ class DayData:
             df = df.reset_index(drop=True)
             # print (self.dataframe)
             self.dataframe = df
+        sname = self.dataframe['Name'].tolist()[0]
         dat = self.dataframe["Date"].tolist()
         dates = [];[dates.append(x) for x in dat if x not in dates]
         
