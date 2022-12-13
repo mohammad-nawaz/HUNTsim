@@ -69,17 +69,48 @@ class HuntSim:
         rconf.readConfig()
         
         # print('Date   #stock_count   COTP CBEP  RBVD Ledger   Total_inv   G/L')        
+        floorP = pd.read_csv('floorPrice.csv')
+        fprice = floorP[floorP['Name']==self.sname]['Floor'].item()
+        COT = []; Val = []; y = []; buy_sig =0; sell_sig = 0;
+        tot_pair = []; len_y = []; i =0
         for td in self.tdates:
             df_td = self.df[self.df['Date']==td]
-            self.cotp = df_td['COTP'].item()
             
+            self.cotp = df_td['COTP'].item()
             self.cp = df_td['CP'].item()
-                      
-            # if np.isnan(df_td['COTP'].item()):
             if np.isnan(df_td['CP'].item()):
-                # self.matureStock(td, call='buy')
-                # self.matureStock(td, call='sell')
                 continue
+            
+            ##Calculating sig###
+            val = df_td['TVAL'].item()
+            # strVal = str(val)
+            # if not strVal == 'nan':
+            COT.append(self.cotp)
+            Val.append(val)
+            tot_pair.append([self.cotp,val])
+            if i>1:
+                y.append(tot_pair[-3])
+                y.sort()
+                while val>0 and len(y)>0:
+                    if val> y[0][1]:
+                        val -= y[0][1]
+                        y.pop(0)
+                    elif val<= y[0][1]:
+                        y[0][1] -= val
+                        val = 0
+            len_y.append(len(y))
+            pRatio = self.cotp/fprice;
+            if i>1:
+                if len_y[-1]-len_y[-2] <= -4:
+                        if pRatio >=1.2:
+                            buy_sig = 1
+                            sell_sig = 0
+                else:
+                    buy_sig = 0
+                if len_y[-1] - len_y[-2] >= 1:
+                    sell_sig = 1
+            i += 1
+            
             self.rbvd = df_td['RBVD'].item()
             self.hbsrat = df_td['HB/HS'].item()
             self.mbsrat = df_td['MB/MS'].item()
@@ -97,7 +128,7 @@ class HuntSim:
                       round(self.totgain), round(self.totgrowth,1))
                 print('--------- BUY call ----------')            
         
-            self.buyCall(td)
+            self.buyCall(td, buy_sig)
             
             self.countStock(td) 
             self.calcGrowth(td)
@@ -111,7 +142,7 @@ class HuntSim:
             
             if pout:
                 print('-------- SELL call ---------')
-            self.sellCall(td)
+            self.sellCall(self.sname,td, sell_sig)
             self.countStock(td)  
             self.calcGrowth(td)
             if pout: 
@@ -183,7 +214,7 @@ class HuntSim:
  
              
     
-    def buyCall(self, date):
+    def buyCall(self, date, buy_sig= None):
         df = self.df
         df_td = df[df['Date']==date]
         # td = tcalendar.TradingDates()
@@ -202,11 +233,6 @@ class HuntSim:
         rbv_diff = df_td['RBVD'].item()
         
         
-        step_sum = df_td['STEPS'].item()
-        pss = df_td['PSS'].item()
-        vss = df_td['VSS'].item()
-        
-        
         rconf = ReadConfig()
         rconf.readConfig()
         
@@ -221,20 +247,23 @@ class HuntSim:
         cur_inv = stock_count*buy_price 
         
         # print(round(self.avg), round(self.bep), round(cur_inv))
-        
-        if rconf.Buy_params_count == 1: 
-            if df_td['HB/HS'].item()>=rconf.b_hbs_ratio:                
-                self.cinv[date] = [stock_count, buy_price, cur_inv]
-                self.avg = (prev_avg*prev_scount+cur_inv)/(prev_scount+stock_count)
-                self.bep = (prev_bep*prev_scount+cur_inv)/(prev_scount+stock_count)
+        # if buy_sig == 1:
+        #     self.cinv[date] = [stock_count, buy_price, cur_inv]
+        #     self.avg = (prev_avg*prev_scount+cur_inv)/(prev_scount+stock_count)
+        #     self.bep = (prev_bep*prev_scount+cur_inv)/(prev_scount+stock_count)
+        # if rconf.Buy_params_count == 1: 
+        #     if df_td['HB/HS'].item()>=rconf.b_hbs_ratio:                
+        #         self.cinv[date] = [stock_count, buy_price, cur_inv]
+        #         self.avg = (prev_avg*prev_scount+cur_inv)/(prev_scount+stock_count)
+        #         self.bep = (prev_bep*prev_scount+cur_inv)/(prev_scount+stock_count)
 
 
-        if rconf.Buy_params_count == 2: 
-            if df_td['HB/HS'].item()>=rconf.b_hbs_ratio and df_td['MB/MS'].item()>=rconf.b_mbs_ratio:
-                self.cinv[date] = [stock_count, buy_price, cur_inv]   
-                self.avg = (prev_avg*prev_scount+cur_inv)/(prev_scount+stock_count)
-                self.bep = (prev_bep*prev_scount+cur_inv)/(prev_scount+stock_count)
-
+        # if rconf.Buy_params_count == 2: 
+        #     if df_td['HB/HS'].item()>=rconf.b_hbs_ratio and df_td['MB/MS'].item()>=rconf.b_mbs_ratio:
+        #         self.cinv[date] = [stock_count, buy_price, cur_inv]   
+        #         self.avg = (prev_avg*prev_scount+cur_inv)/(prev_scount+stock_count)
+        #         self.bep = (prev_bep*prev_scount+cur_inv)/(prev_scount+stock_count)
+ 
         if rconf.Buy_params_count == 3: 
             if df_td['HB/HS'].item()>=rconf.b_hbs_ratio and df_td['MB/MS'].item()>=rconf.b_mbs_ratio and rbv_diff>=rconf.b_rbv_diff:
                 self.cinv[date] = [stock_count, buy_price, cur_inv]   
@@ -246,14 +275,12 @@ class HuntSim:
                 self.cinv[date] = [stock_count, buy_price, cur_inv]   
                 self.avg = (prev_avg*prev_scount+cur_inv)/(prev_scount+stock_count)
                 self.bep = (prev_bep*prev_scount+cur_inv)/(prev_scount+stock_count)
-                
         if rconf.Buy_params_count == 5: 
-            if vss>=rconf.b_vss:
+            if buy_sig == 1 or df_td['HB/HS'].item()>=rconf.b_hbs_ratio and df_td['MB/MS'].item()>=rconf.b_mbs_ratio and rbv_diff>=rconf.b_rbv_diff:
                 self.cinv[date] = [stock_count, buy_price, cur_inv]   
                 self.avg = (prev_avg*prev_scount+cur_inv)/(prev_scount+stock_count)
-                self.bep = (prev_bep*prev_scount+cur_inv)/(prev_scount+stock_count)        
-    
-    def sellCall(self, date):
+                self.bep = (prev_bep*prev_scount+cur_inv)/(prev_scount+stock_count)
+    def sellCall(self, name, date, sell_sig = None):
         df = self.df
         df_td = df[df['Date']==date]
         
@@ -300,7 +327,7 @@ class HuntSim:
         if rconf.Sell_params_count == 1: 
             if df_td['RBVD'].item()<rconf.s_rbv_diff:
                     
-                # Sell mature stocks
+                #Sell mature stocks
                 for d in list(self.cinv.keys()):
                     if (self.tdates.index(date)-self.tdates.index(d))>=2:
                         self.compinv[date] = [sell_count, minv_avg, sell_val, 
@@ -308,9 +335,8 @@ class HuntSim:
                         del self.cinv[d]
                     
         if rconf.Sell_params_count == 2: 
-            if df_td['RBVD'].item()<rconf.s_rbv_diff or rbvd_prev<rconf.s_rbv_diff:
-                    
-                # Sell mature stocks
+            if df_td['RBVD'].item()<rconf.s_rbv_diff or rbvd_prev<rconf.s_rbv_diff:            
+            # Sell mature stocks
                 for d in list(self.cinv.keys()):
                     if (self.tdates.index(date)-self.tdates.index(d))>=2:
                         self.compinv[date] = [sell_count, minv_avg, sell_val, 
@@ -320,7 +346,20 @@ class HuntSim:
             self.countStock(date)
             
             self.bep = (prev_bep*prev_scount-sell_val)/max(1,(prev_scount+self.tscount))
-        
+            
+        # if rconf.Sell_params_count == 3: 
+        #     if df_td['RBVD'].item()<rconf.s_rbv_diff or rbvd_prev<rconf.s_rbv_diff:
+        # # if sell_sig == 1:            
+        #     # Sell mature stocks
+        #         for d in list(self.cinv.keys()):
+        #             if (self.tdates.index(date)-self.tdates.index(d))>=2:
+        #                 self.compinv[date] = [sell_count, minv_avg, sell_val, 
+        #                                       gain, growth, success, fail]
+        #                 del self.cinv[d]        
+                    
+        #     self.countStock(date)
+                
+            # self.bep = (prev_bep*prev_scount-sell_val)/max(1,(prev_scount+self.tscount))
     # def matureStock(self, date, call):
     #     if call=='buy':
     #         if 2>(self.tdates.index(date)-self.tdates.index(self.invdate_latest))>=1:
@@ -430,18 +469,14 @@ class SimDataOut:
         
         
 
-# datafile = ["AAMRATECH", "ACMELAB","ACIFORMULA","ADNTEL","ANWARGALV", "BBS",
-#             "BBSCABLES",
-#             "BDCOM","BEACONPHAR","BEXIMCO","BPML","BSC","BSCCL","BXPHARMA",
-#             "COPPERTECH","DELTALIFE","EHL","FAREASTLIF","GEMINISEA","GENEXIL",
-#             "IBP", "INDEXAGRO",
-#             "INTRACO","JHRML","JMISMDL","KDSALTD", "KEYACOSMET","KOHINOOR",
-#             "LHBL","LRBDL",
-#             "MAKSONSPIN","MALEKSPIN","METROSPIN","MIRAKHTER","MONOSPOOL", 
-#             "NAHEEACP","NPOLYMER","OLYMPIC","ORIONINFU","ORIONPHARM", "PAPERPROC",
-#             "PHARMAID",
-#             "PENINSULA","SEAPEARL","SONALIPAPR","SONALIANSH","SPCERAMICS",
-#             "SPCL","UNIQUEHRL"]
+datafile = ['BDCOM','ADNTEL','GENEXIL','INTECH','ITC',
+          'BPML','SONALIANSH','SONALIPAPR','PAPERPROC',
+          'MONOSPOOL','ORIONINFU','ORIONPHARM','BSC','BXPHARMA','JHRML',
+          'JMISMDL','KOHINOOR','PHARMAID','SAPORTL','EHL','KDSALTD','LOVELLO',
+          'MAKSONSPIN','ANWARGALV','METROSPIN','MALEKSPIN','SINOBANGLA','BEXIMCO',
+          'LRBDL','INTRACO','INDEXAGRO','SEAPEARL','AFCAGRO','GEMINISEA','AAMRANET',
+          'AAMRATECH','ADVENT','BDTHAIFOOD','MONNOAGML','PADMALIFE','PRAGATILIF','BEACONPHAR',
+          'BEACHHATCH']
 
 # Output simulation data
 # sdo = SimDataOut()
@@ -454,5 +489,5 @@ class SimDataOut:
 #                                     'tgain', 'tgrowth'])
 
 # Simulation output summary
-# sdo = SimDataOut()
+sdo = SimDataOut()
 # sdo.simOutSummary(datafile)
