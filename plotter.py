@@ -49,7 +49,7 @@ class Plotter:
         
         plt.show()
         
-    def plotDuo_n(self, sname, var1=None, var2=None, midday_data = None):
+    def plotDuo_n(self, sname, var1=None, var2=None, midday_data = 'on'):
         # var1 = var1.upper(); var2 = var2.upper()
         ddc = dp.DayDataCheck()
         df = ddc.dayDataCheck(sname, midday_data =  midday_data)

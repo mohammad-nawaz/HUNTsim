@@ -234,11 +234,11 @@ class MinData:
         dfn = self.priceStep(dfn)
         
         if interpol == 'on':
-            t0 = tim.time()
+            # t0 = tim.time()
             dfn = self.interpolatedData(dfn)
-            t1 = tim.time()
-            print ('time taken:',t1-t0)
-            print('Hello')
+            # t1 = tim.time()
+            # print ('time taken:',t1-t0)
+            # print('Hello')
             dfn = self.priceStep(dfn)
             dfn = self.addnewCols(dfn)
         return dfn
@@ -909,6 +909,7 @@ class DayData:
         
     def dayDataPrep(self, start_date=None, end_date=None, midday_data = None):
         if midday_data == 'on':
+            # print('Midday data is on')
             # print(self.dataframe)
             # print (self.dataframe['Name'].tolist()[0])
             sname = self.dataframe['Name'].tolist()[0]
@@ -1097,7 +1098,7 @@ class DayData:
                 RBVdiff = remBV[i]-remBV[i-1]
 
         dfday=dfday.assign(RHBVD=remHCOTBVD)
-        dfday=dfday.assign(RBVD=remBVD)         
+        dfday=dfday.assign(RBVD=remBVD)       
    
         return dfday
     
@@ -1172,5 +1173,7 @@ class DayDataCheck:
 # name = 'KOHINOOR'
 # date = 'nov10'
 # md = MinData()
+# md.storeData()
+
 # dfn = md.minDataPrep(name,date)
 # dfn = md.minMiddayDataPrep(name)

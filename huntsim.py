@@ -36,50 +36,54 @@ class HuntSim:
         self.scount = 0
         
         # To calculate total g/l
-        self.cinv = {}
-        self.compinv = {}
-        self.mscount = 0
-        self.tscount = 0
-        self.totinv = 0
-        self.totsell = 0
-        self.totgain = 0
-        self.totgrowth = 0
-        self.success = 0
-        self.fail = 0
-        self.successrate = 0
+        self.cinv = {}          # cumulative investment
+        self.compinv = {}       # completed cumulative investment
+        self.mscount = 0        # mature stock count
+        self.tscount = 0        # total stock count
+        self.totinv = 0         # total investment
+        self.totsell = 0        # total sell
+        self.totgain = 0        # total gain
+        self.totgrowth = 0      # total growth
+        self.success = 0        # number of success 
+        self.fail = 0           # number of fail
+        self.successrate = 0    # success rate
         
         # To calculate avg and bep
-        self.avg = 0
-        self.bep = 0
+        self.avg = 0            # average                      
+        self.bep = 0            # bep
         
         # Updating the sell signals
-        self.sellsig = 0
+        self.sellsig = 0        # sell sig
         
         # Trade Summary
-        self.tradesummary = []
+        self.tradesummary = []  # trade summary
 
     
     def simTrade(self, curledg=None, matinv=None, immatinv=None, lastinvdate=None,
                  startdate=None, enddate=None, pout = False):
+        # Prepare day data 
         ddc = dataprep.DayDataCheck()
         self.df = ddc.dayDataCheck(self.sname)
         self.tdates = self.df['Date'].tolist()
-        
+    
         rconf = ReadConfig()
         rconf.readConfig()
         
         # print('Date   #stock_count   COTP CBEP  RBVD Ledger   Total_inv   G/L')        
         for td in self.tdates:
             df_td = self.df[self.df['Date']==td]
+            # COTP: center of trade price; CP: closing price
             self.cotp = df_td['COTP'].item()
             
             self.cp = df_td['CP'].item()
                       
+            # Pass to the next day if CP (or COTP) is a NAN value
             # if np.isnan(df_td['COTP'].item()):
             if np.isnan(df_td['CP'].item()):
                 # self.matureStock(td, call='buy')
                 # self.matureStock(td, call='sell')
                 continue
+            # RBVD: remaining buy value difference
             self.rbvd = df_td['RBVD'].item()
             self.hbsrat = df_td['HB/HS'].item()
             self.mbsrat = df_td['MB/MS'].item()
@@ -111,7 +115,7 @@ class HuntSim:
             
             if pout:
                 print('-------- SELL call ---------')
-            self.sellCall(td)
+            self.sellCall(self.sname, td)
             self.countStock(td)  
             self.calcGrowth(td)
             if pout: 
@@ -154,6 +158,8 @@ class HuntSim:
         totst_count = 0
         matst_count = 0
         for d in self.cinv.keys():
+            # Check whether the current date is a mature date for the current 
+            # investment dictionary (cinv) dates
             if (self.tdates.index(date)-self.tdates.index(d))>=2:
                 matst_count += self.cinv[d][0]
             totst_count += self.cinv[d][0]
@@ -253,7 +259,7 @@ class HuntSim:
                 self.avg = (prev_avg*prev_scount+cur_inv)/(prev_scount+stock_count)
                 self.bep = (prev_bep*prev_scount+cur_inv)/(prev_scount+stock_count)        
     
-    def sellCall(self, date):
+    def sellCall(self, name, date):
         df = self.df
         df_td = df[df['Date']==date]
         
