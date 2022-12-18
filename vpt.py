@@ -18,6 +18,7 @@ import tcalendar as tc
 
 
 # plt.ioff()
+plt.ion()
 
 class MomentumSignal:
 
@@ -154,9 +155,10 @@ class MomentumSignal:
             
         spath = paths[2]    # stock path
         mspath = paths[3]   # path for saving figures
+        stpath = paths[4]    # path for the file StockList.txt
         
         # Reading name of stocks 
-        with open('/Users/nawaz/res/sharemarket/1hunt_mama/HUNTsim/rawdata_as/StockList.txt') as f: 
+        with open(stpath+'StockList.txt') as f: 
             dfile = [line.rstrip() for line in f]
         
         # dfile = dfile[0:1].copy()
@@ -166,7 +168,7 @@ class MomentumSignal:
         
         font = {'family' : 'normal',
                 'weight' : 'bold',
-                'size'   : 30}
+                'size'   : 12}
         
         markersize = 100
         
@@ -311,7 +313,7 @@ class MomentumSignal:
         
                 # Set figure
                 fig, ax = plt.subplots(4, sharex=True)
-                fig.set_size_inches(30, 20, forward=True)
+                # fig.set_size_inches(30, 20, forward=True)
                 # ax.axis([0, 5000, 0,10])
             
                 # ## Val/Trade
@@ -397,13 +399,13 @@ class MomentumSignal:
             
         
                 matplotlib.rc('font', **font)
-                matplotlib.rcParams['axes.linewidth']=3
+                # matplotlib.rcParams['axes.linewidth']=3
                 
                 fname = date
                 if not midday_data:
                     plt.savefig(figpath+str(count).zfill(4))
                 plt.show()
-                plt.close()
+                # plt.close()
                 count += 1
               
                 
