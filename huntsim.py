@@ -72,7 +72,7 @@ class HuntSim:
         floorP = pd.read_csv('floorPrice.csv')
         fprice = floorP[floorP['Name']==self.sname]['Floor'].item()
         COT = []; Val = []; y = []; buy_sig =0; sell_sig = 0;
-        tot_pair = []; len_y = []; i =0
+        tot_pair = []; len_y = []; i =0; x = []; big_tr = []
         for td in self.tdates:
             df_td = self.df[self.df['Date']==td]
             
@@ -83,8 +83,6 @@ class HuntSim:
             
             ##Calculating sig###
             val = df_td['TVAL'].item()
-            # strVal = str(val)
-            # if not strVal == 'nan':
             COT.append(self.cotp)
             Val.append(val)
             tot_pair.append([self.cotp,val])
@@ -100,15 +98,51 @@ class HuntSim:
                         val = 0
             len_y.append(len(y))
             pRatio = self.cotp/fprice;
+            # total = 0
+            # for k in range(len(y)):
+            #     total += y[k][1]
             if i>1:
                 if len_y[-1]-len_y[-2] <= -4:
-                        if pRatio >=1.2:
+                        if pRatio >=1.1:
                             buy_sig = 1
                             sell_sig = 0
+                        big_tr.append(self.cotp)
+                        if big_tr[-1]>= 1.4*big_tr[0]:
+                            buy_sig = 0
+                            sell_sig =1
+                            big_tr = []
+                # elif Val[-1]>= 0.7*total and len_y[-1]-len_y[-2] <= -2:
+                #     buy_sig = 1
+                #     sell_sig = 0
+                # elif len_y[-2]>=3 and len_y[-1] == 0:
+                #     if 1.8 >= pRatio >= 1.1:
+                #         buy_sig = 1
+                #         sell_sig = 0
+                elif i>2 and len_y[-1]-len_y[-3]<=-6:
+                    # if pRatio >=1.1:
+                    buy_sig = 1
+                    sell_sig = 0
+                elif i>3 and len_y[-1]-len_y[-4]<=-7:
+                    # if pRatio >=1.1:
+                    buy_sig = 1
+                    sell_sig = 0
+                elif i>1 and len_y[-1]==0 and len_y[-2]==0:
+                    if 1.8 >= pRatio >= 1.2:
+                        buy_sig = 1
+                        sell_sig = 0
+                    #and len_y[-3]==0
                 else:
                     buy_sig = 0
-                if len_y[-1] - len_y[-2] >= 1:
-                    sell_sig = 1
+                # if len_y[-1] - len_y[-2] >= 1:
+                #     sell_sig = 1
+                    
+                #incorporating sell signal into buy signal
+                
+                if rconf.Sell_params_count == 1: 
+                    if df_td['RBVD'].item()<rconf.s_rbv_diff:
+                        buy_sig = 0
+                        sell_sig =1
+                
             i += 1
             
             self.rbvd = df_td['RBVD'].item()
@@ -280,6 +314,12 @@ class HuntSim:
                 self.cinv[date] = [stock_count, buy_price, cur_inv]   
                 self.avg = (prev_avg*prev_scount+cur_inv)/(prev_scount+stock_count)
                 self.bep = (prev_bep*prev_scount+cur_inv)/(prev_scount+stock_count)
+        if rconf.Buy_params_count == 6: 
+            if buy_sig == 1:
+                self.cinv[date] = [stock_count, buy_price, cur_inv]   
+                self.avg = (prev_avg*prev_scount+cur_inv)/(prev_scount+stock_count)
+                self.bep = (prev_bep*prev_scount+cur_inv)/(prev_scount+stock_count)
+                print('buy:',date)
     def sellCall(self, name, date, sell_sig = None):
         df = self.df
         df_td = df[df['Date']==date]
@@ -311,11 +351,11 @@ class HuntSim:
         growth = (gain/max(1,minv_avg))*100
         
         
-        success = fail = 0
-        if gain>0: 
-            success = 1
-        if gain<=0:
-            fail = 1
+        success = 0; fail = 0
+        # if gain>0: 
+        #     success = 1
+        # if gain<=0:
+        #     fail = 1
         
         
         prev_bep = self.bep
@@ -330,10 +370,16 @@ class HuntSim:
                 #Sell mature stocks
                 for d in list(self.cinv.keys()):
                     if (self.tdates.index(date)-self.tdates.index(d))>=2:
+                        if gain>0:
+                            success += 1
+                            print('succesfullsell:',date)
+                        else:
+                            fail += 1
+                            print('failedsell:', date)
                         self.compinv[date] = [sell_count, minv_avg, sell_val, 
                                               gain, growth, success, fail]
                         del self.cinv[d]
-                    
+                        
         if rconf.Sell_params_count == 2: 
             if df_td['RBVD'].item()<rconf.s_rbv_diff or rbvd_prev<rconf.s_rbv_diff:            
             # Sell mature stocks
@@ -342,7 +388,7 @@ class HuntSim:
                         self.compinv[date] = [sell_count, minv_avg, sell_val, 
                                               gain, growth, success, fail]
                         del self.cinv[d]        
-                    
+                        print('sell:',date)
             self.countStock(date)
             
             self.bep = (prev_bep*prev_scount-sell_val)/max(1,(prev_scount+self.tscount))
@@ -469,16 +515,17 @@ class SimDataOut:
         
         
 
-datafile = ['BDCOM','ADNTEL','GENEXIL','INTECH','ITC',
-          'BPML','SONALIANSH','SONALIPAPR','PAPERPROC',
-          'MONOSPOOL','ORIONINFU','ORIONPHARM','BSC','BXPHARMA','JHRML',
+datafile = ['BDCOM','ADNTEL','GENEXIL','INTECH','ITC', 'BPML','SONALIANSH','SONALIPAPR','PAPERPROC',
+          'MONOSPOOL','ORIONINFU','BSC','BXPHARMA','JHRML',
           'JMISMDL','KOHINOOR','PHARMAID','SAPORTL','EHL','KDSALTD','LOVELLO',
           'MAKSONSPIN','ANWARGALV','METROSPIN','MALEKSPIN','SINOBANGLA','BEXIMCO',
           'LRBDL','INTRACO','INDEXAGRO','SEAPEARL','AFCAGRO','GEMINISEA','AAMRANET',
-          'AAMRATECH','ADVENT','BDTHAIFOOD','MONNOAGML','PADMALIFE','PRAGATILIF','BEACONPHAR',
-          'BEACHHATCH']
+          'AAMRATECH','ADVENT','BDTHAIFOOD','MONNOAGML','PADMALIFE','PRAGATILIF',
+          'BEACHHATCH','BEACONPHAR','BENGALWTL', 'AGNISYSL','RUPALILIFE',
+          'OLYMPIC','MONNOCERA','SALVOCHEM','APEXFOOT','APEXFOODS','NORTHERN','ECABLES',
+          'PRIMEBANK','NAVANAPHAR','AMBEEPHA','FINEFOODS','TAMIJTEX','JAMUNAOIL','SONALILIFE']
 
-# Output simulation data
+# Output simulation data 'UNIQUEHRL', ,'ORIONPHARM'
 # sdo = SimDataOut()
 # simout_list = []
 # for i in datafile: 
