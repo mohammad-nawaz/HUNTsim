@@ -308,7 +308,7 @@ class MomentumSignal:
                 # calculate buy frac values for a number of entries 
                 nentry = num_entry
                 # buyfrac_vpt, bft_vpt = buyFrac(nentry, vpt, types, cut_val=1)
-                buyfrac_val, bft_val = self.buyFrac(nentry, values , types, cut_val=50)
+                buyfrac_val, bft_val = self.buyFrac(nentry, values , types, cut_val=30)
                 # buyfrac_pvsteps, bft_pvsteps = buyFrac(nentry, Nvsteps, types,cut_val=5)
         
                 # Set figure
@@ -399,13 +399,15 @@ class MomentumSignal:
             
         
                 matplotlib.rc('font', **font)
-                # matplotlib.rcParams['axes.linewidth']=3
+                matplotlib.rcParams['axes.linewidth']=1
                 
                 fname = date
                 if not midday_data:
                     plt.savefig(figpath+str(count).zfill(4))
-                plt.show()
-                # plt.close()
+                    plt.close()
+                if midday_data:
+                    plt.show()
+
                 count += 1
               
                 
