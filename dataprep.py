@@ -234,11 +234,11 @@ class MinData:
         dfn = self.priceStep(dfn)
         
         if interpol == 'on':
-            t0 = tim.time()
+            # t0 = tim.time()
             dfn = self.interpolatedData(dfn)
-            t1 = tim.time()
-            print ('time taken:',t1-t0)
-            print('Hello')
+            # t1 = tim.time()
+            # print ('time taken:',t1-t0)
+            # print('Hello')
             dfn = self.priceStep(dfn)
             dfn = self.addnewCols(dfn)
         return dfn
@@ -323,7 +323,10 @@ class MinData:
             df2 = pd.DataFrame()
             idx1 = R[i][-1];
             idx2 = R[i+1][0];
-            
+            if i == len(R)-2:
+                df2 = df.iloc[R[i+1],:]               
+                df3 = pd.concat([df3,df2])
+                df2 = pd.DataFrame()
             if vs[idx1]> 0 and vs[idx2] > 0:
                 df2['Name'] = df['Name'][idx1+1:idx2]
                 df2['Date'] = df['Date'][idx1+1:idx2]
@@ -977,7 +980,7 @@ class DayData:
                 dftemp_s = dftemp[dftemp["Type"]=="Sell"]
                 tval_s.append(int(dftemp_s["Value"].sum()))          
                 # Total value
-                tvalue.append(int(dftemp["Value"].sum()))
+                tvalue.append(dftemp["Value"].sum())
                 # High-center-of-trade- price and value for buy
                 dftemp_hb = dftemp[(dftemp["Type"]=="Buy") & (dftemp["Value"]>=self.buycut)]
                 # dftemp_mb = dftemp[(dftemp["Type"]=="Buy") & (dftemp["Value"]>=self.mbuycut)]
