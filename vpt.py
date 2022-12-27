@@ -15,10 +15,12 @@ import os
 import math
 import matplotlib
 import tcalendar as tc
+from matplotlib.ticker import NullFormatter
+from matplotlib import cm
 
 
-# plt.ioff()
-plt.ion()
+plt.ioff()
+# plt.ion()
 
 class MomentumSignal:
 
@@ -71,6 +73,147 @@ class MomentumSignal:
             count+=1
                 
         return buyfrac, buyfract
+    
+    def figGen(self):
+        # Setup figure size
+        fig = plt.figure(1, figsize=(12,8))
+    
+        ## Make axes
+        # define axes locations.Make different axes sizes based on the normalized 
+        # figure size of (1,1)
+        lmargin = rmargin = bmargin = tmargin = 0.1; pad = 0.01
+    
+        left_00 = lmargin
+        bottom_00 = bmargin
+        width_00 = 0.15
+        height_00 = 0.4
+    
+        left_01 = lmargin+width_00+pad
+        bottom_01 = bottom_00
+        width_01 = 0.25
+        height_01 = height_00
+    
+        left_02 = left_01+width_01+pad
+        bottom_02 = bottom_00
+        width_02 = 0.25
+        height_02 = height_00
+    
+        left_03 = left_02 + width_02 + pad
+        bottom_03 = bottom_00
+        width_03 = 0.15
+        height_03 = height_00
+    
+        left_04 = left_01
+        bottom_04 = bottom_00 + height_00 + pad
+        width_04 = width_01
+        height_04 = height_00
+    
+        left_05 = left_02
+        bottom_05 = bottom_00 + height_00 + pad
+        width_05 = width_02
+        height_05 = height_00
+    
+        ax00 = plt.axes([left_00, bottom_00, width_00, height_00])
+        ax01 = plt.axes([left_01, bottom_01, width_01, height_01])
+        ax02 = plt.axes([left_02, bottom_02, width_02, height_02])
+        ax03 = plt.axes([left_03, bottom_03, width_03, height_03])
+        ax04 = plt.axes([left_04, bottom_04, width_04, height_04])
+        ax05 = plt.axes([left_05, bottom_05, width_05, height_05])
+    
+        # Remove the inner axes tickmarks
+        nullfmt = NullFormatter()
+        ax01.yaxis.set_major_formatter(nullfmt)
+        ax02.yaxis.set_major_formatter(nullfmt)
+        ax03.yaxis.set_major_formatter(nullfmt)
+        ax04.xaxis.set_major_formatter(nullfmt)
+        ax05.xaxis.set_major_formatter(nullfmt)
+        ax05.yaxis.set_major_formatter(nullfmt)
+        
+        ax = [ax00, ax01, ax02, ax03, ax04, ax05]
+        
+        return ax
+    
+    def hist1(self, ax, x, nbins, orientation= None, label=None, scale=None, flipx=False, color=None):
+        nbins = nbins
+        cmin = 0.01
+        cmax = 500
+        if orientation=='vertical': 
+            ax.set_xscale('log')
+        if orientation=='horizontal': 
+            ax.set_yscale('log')
+        bins = np.logspace(start=np.log10(cmin), stop=np.log10(cmax), num=nbins)
+        
+        if not color:
+            color = 'blue'
+        ax.hist(x, bins = bins, orientation=orientation, color = color, 
+                edgecolor='k', label = label)
+        
+        ax.legend()
+        
+        if orientation=='horizontal':
+            if flipx:
+                # flip the x-axis values
+                # ax.set_xlim(ax.get_xlim()[::-1])
+                ax.set_xlim(50,0)
+                ax.axhline(y=1, color='k')
+            else:
+                ax.set_xlim(0,50)
+                ax.axhline(y=1, color='k')
+            ax.set_ylim(cmin,cmax)
+        if orientation=='vertical':
+            ax.set_ylim(0,50)
+            ax.set_xlim(cmin, cmax)
+            ax.axvline(x=10, color='k')
+                        
+
+        
+
+    def hist2(self, ax, x, y, nxbins, nybins, nbins, xscale=None, yscale=None):
+        # Number of bins
+        nxbins = nxbins
+        nybins = nybins
+        nbins = nbins
+        
+        # Set up x- and y-limits
+        xlims = [min(x), max(x)]
+        ylims = [min(y), max(y)]
+        
+        # Min and Max of the data
+        xmin=min(xlims)
+        xmax = max(xlims)
+        ymin=min(ylims)
+        ymax = max(ylims)
+        
+        # Define bins
+        bmin = 0.01
+        bmax = 500 
+        xbins = np.logspace(start=np.log10(bmin), stop=np.log10(bmax), num=nxbins)
+        ybins = np.logspace(start=np.log10(bmin), stop=np.log10(bmax), num=nybins)
+        
+        # Define cell centers 
+        # xcenter = (xbins[0:-1]+xbins[1:])/2.0
+        # ycenter = (ybins[0:-1]+ybins[1:])/2.0
+        # X=xcenter; Y=ycenter
+        
+        # aspectratio = 1.0*(xmax - 0)/(1.0*ymax - 0)
+        H, xedges,yedges = np.histogram2d(y,x,bins=(ybins,xbins))
+        X, Y = np.meshgrid(xedges,yedges)
+
+        # Set max and min values for the pcolormesh plot
+        vmin = 0
+        vmax = 50
+        cmap = cm.jet
+        #axhist2.pcolormesh(X,Y,H,norm=colors.LogNorm(vmin=0.0001#, vmax=500), cmap = cmap)
+        pcm = ax.pcolormesh(X,Y,H, cmap = cmap, vmin=vmin, vmax=vmax)
+        
+        # Plot straight lines
+        ax.axvline(x=10, color='w')
+        ax.axhline(y=1, color='w')
+        
+        # Set the x- and y-scales log
+        ax.set_xscale("log")
+        ax.set_yscale("log")
+
     
     def getListIndices(self, ls):
         '''Return two list of lists zs=[[]] and nzs=[[]]
@@ -156,14 +299,15 @@ class MomentumSignal:
         spath = paths[2]    # stock path
         mspath = paths[3]   # path for saving figures
         stpath = paths[4]    # path for the file StockList.txt
-        
+
+      
         # Reading name of stocks 
         with open(stpath+'StockList.txt') as f: 
             dfile = [line.rstrip() for line in f]
         
         # dfile = dfile[0:1].copy()
         
-        if midday_data == 'on':
+        if sname:
             dfile = [sname]
         
         font = {'family' : 'normal',
@@ -175,8 +319,6 @@ class MomentumSignal:
         num_entry = 50
         
         midday_data = 'on'
-        
-        
         
         for i in dfile: 
             sname = i
@@ -214,16 +356,16 @@ class MomentumSignal:
             # Make list of tdates 
             tdates = tc.TradingDates()
             td = tdates.tradingDates(i, start_date, end_date)
+            print (td)
             # td = []
             # [td.append(x) for x in df['Date'].tolist() if x not in td]
-            
+ 
             # Plot Val per trades
             # destination of figures
             figpath = os.path.join(mspath,sname)
             if not os.path.isdir(figpath):
                 os.mkdir(figpath)
             figpath = figpath+'/'
-            
             
             count = 0
             for date in td:
@@ -401,7 +543,6 @@ class MomentumSignal:
                 matplotlib.rc('font', **font)
                 matplotlib.rcParams['axes.linewidth']=1
                 
-                fname = date
                 if not midday_data:
                     plt.savefig(figpath+str(count).zfill(4))
                     plt.close()
@@ -423,5 +564,164 @@ class MomentumSignal:
             # clip = moviepy.video.io.ImageSequenceClip.ImageSequenceClip(image_files, fps=fps)
             # clip.write_videofile('my_video.mp4')
             
+    def momentumHist(self, sname=None, sdate=None, edate=None, midday_data=None):    
+        from datetime import date, time
+        
+        with open('paths.txt') as f:
+            paths = [line.rstrip() for line in f]
+            
+        spath = paths[2]    # stock path
+        mspath = paths[3]   # path for saving figures
+        stpath = paths[4]    # path for the file StockList.txt
+
+      
+        # Reading list of stocks 
+        with open(stpath+'StockList.txt') as f: 
+            dfile = [line.rstrip() for line in f]
+        
+        # dfile = dfile[0:1].copy()
+        
+        if sname:
+            dfile = [sname]
+        
+        font = {'family' : 'normal',
+                'weight' : 'bold',
+                'size'   : 12}
+        
+        markersize = 100
+        
+        num_entry = 50
+        
+        # midday_data = 'on'
+        
+        for i in dfile: 
+            sname = i
+            sname = sname.upper()
+            print(sname)
+            df = pd.read_csv(spath+sname+'interpolated.csv')
+            
+            # midday data prep
+            if midday_data:
+                md = dp.MinData()
+                df_mid = md.minMiddayDataPrep(name = sname)
+                df = pd.concat([df, df_mid])
+                df = df.reset_index(drop=True)
+            
+                months=['jan','feb','mar','apr','may','jun',
+                        'jul','aug','sep','oct','nov','dec']
+                
+                tod = date.today()
+                m = months[tod.month-1]
+                d = tod.day
+                if d//10==0:
+                    d = '0'+str(d)
+                else: 
+                    d = str(d)
+                    
+                if edate==None: 
+                    end_date = m+d
+                else: 
+                    end_date = edate
+                    
+                if sdate==None: 
+                    start_date = end_date
+                else: 
+                    start_date = sdate
+            
+                # Make list of tdates 
+                tdates = tc.TradingDates()
+                td = tdates.tradingDates(i, start_date, end_date)
+
+            if not midday_data:
+                td = []
+                [td.append(x) for x in df['Date'].tolist() if x not in td]
+ 
+            # Plot Val per trades
+            # destination of figures
+            figpath = os.path.join(mspath,sname)
+            if not os.path.isdir(figpath):
+                os.mkdir(figpath)
+            figpath = figpath+'/'
+            
+            count = 0
+            for date in td:
+                print(sname, date)
+                # dataframe of a day
+                dfn=df[df['Date']==date]
+                
+                # Model pstep and pvstep
+                psteps = dfn["Pstep"].tolist()
+                types = dfn["Type"].tolist()
+                values=dfn["Value"].tolist()
+                Npsteps=self.modelList(psteps,types)
+                Pvsteps= [abs(i*j) for i,j in zip(Npsteps,values)] 
+                dfn["Npsteps"]=Npsteps
+                dfn["Pvsteps"]=Pvsteps
+                
+                # buy dataframe of a day
+                dfnb = dfn[dfn["Type"]=='Buy']
+                # sell dataframe of a day
+                dfns = dfn[dfn["Type"]=='Sell']
+                
+                # val/trade of a day
+                vpt = dfn["ValperTrade"].tolist()
+                # buy_val/trade of a day
+                vptb = dfnb["ValperTrade"].tolist()
+                # sell_val/trade of a day
+                vpts = dfns["ValperTrade"].tolist()
+                        
+                # buy_val of a day
+                valb = dfnb["Value"].tolist()
+                # sell_val of a day
+                vals = dfns["Value"].tolist()
+                
+                # NVsteps of a day
+                pvstb = dfnb["Pvsteps"].tolist()
+                # sell_val of a day
+                pvsts = dfns["Pvsteps"].tolist()
+               
+                # Calculate COTP
+                price_list = dfn["Price"].tolist()
+                value_list = dfn["Value"].tolist()
+                pval = [i*j for i, j in zip(price_list,value_list)]
+                cotp = round(sum(pval)/sum(value_list),1)
+                cotp = str(cotp)
+                
+                # # Add price to the figure
+                cp = dfn['Price'].tolist()[-1]
+                cp = str(cp)
+                
+                sname = dfn['Name'].tolist()[0]
+        
+                matplotlib.rc('font', **font)
+                matplotlib.rcParams['axes.linewidth']=1
+                
+                
+                # Make a figure: 
+                ax = self.figGen()
+                
+                # Plot histograms
+                self.hist1(ax[0], pvstb, 50,orientation='horizontal', 
+                           flipx=True, color='blue', label='pvstepb')
+                self.hist2(ax[1],valb, pvstb, 50,50, 100)
+                self.hist2(ax[2], vals,pvsts, 50,50, 100)
+                self.hist1(ax[3], pvsts, 50,orientation='horizontal', 
+                           color='red', label='pvsteps')
+                self.hist1(ax[4], valb, 50, color='blue', 
+                           orientation='vertical', label='valb')
+                self.hist1(ax[5], vals, 50, color='red', 
+                           orientation='vertical', label='vals')
+
+                ax[4].set_title(sname+' '+date+' '+cp+' '+ cotp)
+                
+                if not midday_data:
+                    plt.savefig(figpath+str(count).zfill(4)+'.png')
+                    plt.close()
+                if midday_data:
+                    plt.show()
+
+                count += 1
+                
+                
             
                     
