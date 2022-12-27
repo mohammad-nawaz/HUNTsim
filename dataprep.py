@@ -234,11 +234,11 @@ class MinData:
         dfn = self.priceStep(dfn)
         
         if interpol == 'on':
-            t0 = tim.time()
+            # t0 = tim.time()
             dfn = self.interpolatedData(dfn)
-            t1 = tim.time()
-            print ('time taken:',t1-t0)
-            print('Hello')
+            # t1 = tim.time()
+            # print ('time taken:',t1-t0)
+            # print('Hello')
             dfn = self.priceStep(dfn)
             dfn = self.addnewCols(dfn)
         return dfn
@@ -323,7 +323,10 @@ class MinData:
             df2 = pd.DataFrame()
             idx1 = R[i][-1];
             idx2 = R[i+1][0];
-            
+            if i == len(R)-2:
+                df2 = df.iloc[R[i+1],:]               
+                df3 = pd.concat([df3,df2])
+                df2 = pd.DataFrame()
             if vs[idx1]> 0 and vs[idx2] > 0:
                 df2['Name'] = df['Name'][idx1+1:idx2]
                 df2['Date'] = df['Date'][idx1+1:idx2]
@@ -946,7 +949,8 @@ class DayData:
         # bsp_rat: buy sell pressure ratio
         name = []
         op=[]; cp = []; hp=[]; lp = []
-        cot =[]; tvalue = []; tval_b=[]; tval_s=[]
+        cot =[]; tvalue = []; tvolume = []
+        tval_b=[]; tval_s=[]
         hcotbp=[]; hcotbv=[]
         hcotsp=[]; hcotsv=[]
         bs_rat=[]; hbhs_rat=[]; mbms_rat = []
@@ -956,7 +960,7 @@ class DayData:
         vstep_sum=[]
         for i in tdates:
             if i not in dates:
-                cot.append(np.nan); tvalue.append(np.nan); tval_b.append(np.nan)
+                cot.append(np.nan); tvalue.append(np.nan); tvolume.append(np.nan); tval_b.append(np.nan)
                 op.append(np.nan); cp.append(np.nan); hp.append(np.nan); lp.append(np.nan)
                 tval_s.append(np.nan); hcotbp.append(np.nan); hcotbv.append(np.nan)
                 hcotsp.append(np.nan); hcotsv.append(np.nan); bs_rat.append(np.nan)
@@ -977,7 +981,8 @@ class DayData:
                 dftemp_s = dftemp[dftemp["Type"]=="Sell"]
                 tval_s.append(int(dftemp_s["Value"].sum()))          
                 # Total value
-                tvalue.append(int(dftemp["Value"].sum()))
+                tvalue.append(dftemp["Value"].sum())
+                tvolume.append(dftemp["Volume"].sum())
                 # High-center-of-trade- price and value for buy
                 dftemp_hb = dftemp[(dftemp["Type"]=="Buy") & (dftemp["Value"]>=self.buycut)]
                 # dftemp_mb = dftemp[(dftemp["Type"]=="Buy") & (dftemp["Value"]>=self.mbuycut)]
@@ -1030,7 +1035,7 @@ class DayData:
         dfday = pd.DataFrame({"Name":name,
                               "Date":tdates, "Day":day_count, 
                               "OP": op, "CP":cp, "HP":hp, "LP":lp,
-                              "COTP":cot, "TVAL":tvalue, 
+                              "COTP":cot, "TVAL":tvalue, "TVOL": tvolume, 
                               "TBV":tval_b, "TSV":tval_s, 
                               "HBP":hcotbp, "HBV":hcotbv,
                               "HSP":hcotsp, 
