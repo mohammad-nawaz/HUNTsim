@@ -21,7 +21,7 @@ import shutil
 class Visual:
     '''
     '''
-    def dataVis(self, name, storepng= None, start_date= None):
+    def dataVis(self, name, days =None, storepng= None, start_date= None):
         name = name.upper()
         if storepng == 'on':
             with open('paths.txt') as f:
@@ -40,12 +40,20 @@ class Visual:
             ddc = dataprep.DayDataCheck()
             df = ddc.dayDataCheck(name)
         else:
+            md = dataprep.MinData()
+            df2 = md.minMiddayDataPrep(name)
+            if len(df2) == 0:
+                return print('MidDay Data not available, check the temp file')
+            
             ddc = dataprep.DayDataCheck()
             df = ddc.dayDataCheck(name, midday_data = 'on')
         sizedata = len(df)
         
         
         high = int(1.1*max(df['HP'])); low = int(0.9*min(df['LP']))
+        k = (high-low)/(low*20)
+        extraticks =[(low + j*int(k*low)) for j in range((high-low)//int(k*low))]
+        # print(len(extraticks))
         tdates = df['Date'].tolist()
         floorP = pd.read_csv('floorPrice.csv')
         fprice = floorP[floorP['Name']==name]['Floor'].item()
@@ -132,7 +140,9 @@ class Visual:
                 if not start_date == None:
                     idx = tdates.index(start_date)
             else:
-                idx = sizedata - 4
+                if days== None:
+                    days = 3
+                idx = sizedata - days
             if count>= idx:
                 fig = plt.figure(facecolor='cyan')
             
@@ -148,6 +158,8 @@ class Visual:
                 ax1.set_ylim([low,high])
                 ax1.get_xaxis().set_visible(False)
                 
+                ax1.set_yticks(extraticks)
+                
                 ax1.annotate(f'current:{len_cotVal[-1]}, prev:{len_cotVal[-2]}', (-0.05, high*0.97))
                 k = 1
                 for j in range(len(cotVal)):
@@ -162,13 +174,14 @@ class Visual:
                 # ax1.annotate(f'{cotp}', (-0.05,cotp*1.01))
                 ###########################--------------ax2-----------###############################
                 ax2 = plt.subplot(gs1[1])
-                ax2.set_ylim([low,high])  
+                ax2.set_ylim([low,high])
+                ax2.set_yticks(extraticks)
                 ax2.get_yaxis().set_visible(False)
                 ax2.get_xaxis().set_visible(False)
                 ax2.axhline(y= cotp, xmin=0, xmax=1, c="black", linewidth=2, zorder=0)
-                ax2.annotate(f'{cotp}', (0.04,cotp*1.01))
+                ax2.annotate(f'cot:{cotp}', (0.04,cotp*1.01))
                 ax2.annotate(f'(mat_val:{int(Val[i-3])})', (0.5,COT[i-3]+0.05), color = 'green')
-                ax2.annotate(f'(cur_val: {int(Val[-1])})', (0.005,cotp*0.983), color = 'blue')
+                ax2.annotate(f'(cur_val: {int(Val[-1])})', (0.005,cotp*0.94), color = 'blue')
                 
                 if buy_sig == 1:
                     if cat == 0 and flag:
@@ -204,5 +217,6 @@ class Visual:
         print('date:',td)
         print('RBVD:',df_td['RBVD'].item())
 vs = Visual()
-name = 'SEAPEARL'
+name = 'ORIONINFU'
+days = 1
 vs.dataVis(name)
