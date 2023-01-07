@@ -17,10 +17,7 @@ import matplotlib
 import tcalendar as tc
 from matplotlib.ticker import NullFormatter
 from matplotlib import cm
-
-
-plt.ioff()
-# plt.ion()
+import miscellaneous as misc
 
 class MomentumSignal:
 
@@ -163,10 +160,7 @@ class MomentumSignal:
         if orientation=='vertical':
             ax.set_ylim(0,50)
             ax.set_xlim(cmin, cmax)
-            ax.axvline(x=10, color='k')
-                        
-
-        
+            ax.axvline(x=10, color='k')        
 
     def hist2(self, ax, x, y, nxbins, nybins, nbins, xscale=None, yscale=None):
         # Number of bins
@@ -290,22 +284,24 @@ class MomentumSignal:
                         nls[j]=spstep
         return nls
     
-    def momentumSignal(self, sname=None, sdate=None, edate=None, midday_data='on'):    
+    def momentumSignal(self, sname=None, sdate=None, edate=None, midday_data=None):    
         from datetime import date, time
         
-        with open('paths.txt') as f:
-            paths = [line.rstrip() for line in f]
+        # with open('paths.txt') as f:
+        #     paths = [line.rstrip() for line in f]
             
-        spath = paths[2]    # stock path
-        mspath = paths[3]   # path for saving figures
-        stpath = paths[4]    # path for the file StockList.txt
+        # spath = paths[2]    # stock path
+        # mspath = paths[3]   # path for saving figures
+        # stpath = paths[4]    # path for the file StockList.txt
+        
+        paths_file = 'paths.txt'
+        spath = misc.readPath(paths_file, 'path_mindatastore:')  # path for mindatastore
+        stpath = misc.readPath(paths_file, 'path_HUNTsim:') # path of the working directory
+        mspath = misc.readPath(paths_file, 'path_momentum_signal:') # path for saving momentum signal output
 
-      
         # Reading name of stocks 
         with open(stpath+'StockList.txt') as f: 
             dfile = [line.rstrip() for line in f]
-        
-        # dfile = dfile[0:1].copy()
         
         if sname:
             dfile = [sname]
@@ -318,8 +314,6 @@ class MomentumSignal:
         
         num_entry = 50
         
-        midday_data = 'on'
-        
         for i in dfile: 
             sname = i
             sname = sname.upper()
@@ -327,10 +321,11 @@ class MomentumSignal:
             df = pd.read_csv(spath+sname+'interpolated.csv')
             
             # midday data prep
-            md = dp.MinData()
-            df_mid = md.minMiddayDataPrep(name = sname)
-            df = pd.concat([df, df_mid])
-            df = df.reset_index(drop=True)
+            if midday_data:
+                md = dp.MinData()
+                df_mid = md.minMiddayDataPrep(name = sname)
+                df = pd.concat([df, df_mid])
+                df = df.reset_index(drop=True)
             
             months=['jan','feb','mar','apr','may','jun',
                     'jul','aug','sep','oct','nov','dec']
@@ -357,8 +352,9 @@ class MomentumSignal:
             tdates = tc.TradingDates()
             td = tdates.tradingDates(i, start_date, end_date)
             print (td)
-            # td = []
-            # [td.append(x) for x in df['Date'].tolist() if x not in td]
+            if not midday_data:
+                td = []
+                [td.append(x) for x in df['Date'].tolist() if x not in td]
  
             # Plot Val per trades
             # destination of figures
@@ -372,6 +368,10 @@ class MomentumSignal:
                 print(sname, date)
                 # dataframe of a day
                 dfn=df[df['Date']==date]
+                
+                if len(dfn)==0:
+                    print('No data available for', date)
+                    continue
                 
                 # Model pstep and vstep
                 psteps = dfn["Pstep"].tolist()
@@ -453,8 +453,29 @@ class MomentumSignal:
                 buyfrac_val, bft_val = self.buyFrac(nentry, values , types, cut_val=30)
                 # buyfrac_pvsteps, bft_pvsteps = buyFrac(nentry, Nvsteps, types,cut_val=5)
         
+                if not midday_data:
+                    plt.ioff()
+                    
+                # Plot Variables
+                # variables: 
+                #   vptb: value per trade for buy
+                #   vptb_sum: sum of value per trade for buy
+                #   vpts: value per trade for sell
+                #   vpts_sum: sum of value per trade for sell
+                #   bfrac_vpt: buy fraction for value per trade
+                #   sfrac_vpt: sell fraction for value per trade
+                #   valb: value for buy
+                #   valb_sum: sum of value for buy
+                #   vals: value for sell
+                #   vals_sum: sum of value for sell
+                #   price_list: minute price
+                #   t_ins: time in seconds
+                #   tb_ins: time for buy in seconds
+                #   ts_ins: time for sell in seconds
+
+                plot_vars = []
                 # Set figure
-                fig, ax = plt.subplots(4, sharex=True)
+                fig, ax = plt.subplots(5, sharex=True)
                 # fig.set_size_inches(30, 20, forward=True)
                 # ax.axis([0, 5000, 0,10])
             
@@ -509,12 +530,12 @@ class MomentumSignal:
                 ax[2].axhline(y=0.3, color='r')
                 ax[2].set_ylim(0,1)
                 
-                # ax[5].scatter(ts_ins,vals_sum, marker='x', color='b')
-                # ax[5].scatter(tb_ins,valb_sum, marker='x', color='k')
-                # ax[5].set_ylabel('val_sum')
+                ax[3].scatter(ts_ins,vals_sum, marker='x', color='b')
+                ax[3].scatter(tb_ins,valb_sum, marker='x', color='k')
+                ax[3].set_ylabel('val_sum')
                 
-                ax[3].scatter(t_ins, price_list, marker = 'x', color='r')
-                ax[3].set_ylabel('price')
+                ax[4].scatter(t_ins, price_list, marker = 'x', color='r')
+                ax[4].set_ylabel('price')
                  
                 # # Histograms of val/trade
                 # ax.hist(vptb,50, ec='black', fc='none', lw=2, histtype='step',label='buy', 
@@ -547,6 +568,7 @@ class MomentumSignal:
                     plt.savefig(figpath+str(count).zfill(4))
                     plt.close()
                 if midday_data:
+                    plt.ion()
                     plt.show()
 
                 count += 1
